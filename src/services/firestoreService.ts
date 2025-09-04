@@ -270,17 +270,66 @@ export class FirestoreService {
     }
   }
 
+  // البحث عن المستخدم بالبريد الإلكتروني
+  static async getUserByEmail(email: string): Promise<User | null> {
+    try {
+      const db = this.getDb();
+      
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('email', '==', email)
+      );
+      
+      const querySnapshot = await getDocs(usersQuery);
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        const data = userDoc.data();
+        return {
+          uid: userDoc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date()
+        } as User;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('خطأ في البحث عن المستخدم بالبريد الإلكتروني:', error);
+      throw new Error('فشل في البحث عن المستخدم');
+    }
+  }
+
   // خدمات المستخدمين
   static async getUser(uid: string): Promise<User | null> {
     try {
       const db = this.getDb();
-      const docRef = doc(db, 'users', uid);
-      const docSnap = await getDoc(docRef);
+      
+      // أولاً: محاولة البحث بالـ UID
+      let docRef = doc(db, 'users', uid);
+      let docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
         const data = docSnap.data();
         return {
           uid: docSnap.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date()
+        } as User;
+      }
+      
+      // إذا لم يتم العثور عليه بالـ UID، البحث بالبريد الإلكتروني
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('email', '==', uid) // استخدام UID كبريد إلكتروني مؤقتاً
+      );
+      
+      const querySnapshot = await getDocs(usersQuery);
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        const data = userDoc.data();
+        return {
+          uid: userDoc.id,
           ...data,
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate() || new Date()
