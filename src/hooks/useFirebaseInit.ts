@@ -19,13 +19,30 @@ export const useFirebaseInit = (): FirebaseInitState => {
       setError(null);
       
       // تأخير قصير لتجنب مشاكل التهيئة
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       await initializeFirebase();
       setIsInitialized(true);
     } catch (err: any) {
       console.error('فشل في تهيئة Firebase:', err);
-      setError(err.message || 'فشل في تهيئة Firebase');
+      let errorMessage = 'فشل في تهيئة Firebase';
+      
+      if (err.message) {
+        errorMessage = err.message;
+      } else if (err.code) {
+        switch (err.code) {
+          case 'auth/invalid-api-key':
+            errorMessage = 'مفتاح API الخاص بـ Firebase غير صحيح';
+            break;
+          case 'auth/invalid-domain':
+            errorMessage = 'نطاق Firebase غير صحيح';
+            break;
+          default:
+            errorMessage = `خطأ في Firebase: ${err.code}`;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

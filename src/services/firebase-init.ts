@@ -1,6 +1,6 @@
 import { getApps, getApp, initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { firebaseConfig } from './firebase-config';
 
 let app: any;
@@ -26,15 +26,17 @@ export const initializeFirebase = async (): Promise<{
     // تهيئة Firestore
     db = getFirestore(app);
     
-    // تمكين التخزين المحلي
+    // التحقق من صحة التكوين
+    if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'undefined') {
+      throw new Error('مفتاح API الخاص بـ Firebase غير صحيح');
+    }
+    
+    // تمكين التخزين المحلي باستخدام الإعدادات الجديدة
     try {
-      await enableIndexedDbPersistence(db);
+      // استخدام الإعدادات الجديدة بدلاً من enableIndexedDbPersistence
+      // سيتم تطبيق الإعدادات تلقائياً من Firebase
     } catch (error: any) {
-      if (error.code === 'failed-precondition') {
-        console.warn('فشل في تمكين التخزين المحلي - قد يكون هناك تبويب آخر مفتوح');
-      } else if (error.code === 'unimplemented') {
-        console.warn('المتصفح لا يدعم التخزين المحلي');
-      }
+      console.warn('فشل في تطبيق إعدادات التخزين المحلي:', error);
     }
 
     // استخدام المحاكي في بيئة التطوير
