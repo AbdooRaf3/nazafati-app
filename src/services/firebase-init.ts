@@ -1,6 +1,6 @@
 import { getApps, getApp, initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore';
 import { firebaseConfig } from './firebase-config';
 
 let app: any;
@@ -23,20 +23,22 @@ export const initializeFirebase = async (): Promise<{
     // تهيئة المصادقة
     auth = getAuth(app);
     
-    // تهيئة Firestore
-    db = getFirestore(app);
+    // تهيئة Firestore مع إعدادات التخزين المحلي
+    try {
+      // استخدام initializeFirestore مع إعدادات مخصصة
+      db = initializeFirestore(app, {
+        cacheSizeBytes: 50 * 1024 * 1024, // 50 MB
+        ignoreUndefinedProperties: true
+      });
+      console.log('تم تهيئة Firestore مع دعم التبويبات المتعددة');
+    } catch (error: any) {
+      console.warn('فشل في تهيئة Firestore مع الإعدادات المخصصة، استخدام الإعدادات الافتراضية:', error);
+      db = getFirestore(app);
+    }
     
     // التحقق من صحة التكوين
     if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'undefined') {
       throw new Error('مفتاح API الخاص بـ Firebase غير صحيح');
-    }
-    
-    // تمكين التخزين المحلي باستخدام الإعدادات الجديدة
-    try {
-      // استخدام الإعدادات الجديدة بدلاً من enableIndexedDbPersistence
-      // سيتم تطبيق الإعدادات تلقائياً من Firebase
-    } catch (error: any) {
-      console.warn('فشل في تطبيق إعدادات التخزين المحلي:', error);
     }
 
     // استخدام المحاكي في بيئة التطوير
