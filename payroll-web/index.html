@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>نظام كشف دوام العمال - بلدية مادبا</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>كشف دوام العمال - ويب</h1>
+      <nav id="top-nav" class="hide">
+        <span id="userRole"></span>
+        <button id="btnLogout" class="btn danger">تسجيل الخروج</button>
+      </nav>
+    </header>
+
+    <main class="container">
+      <!-- شاشة الدخول -->
+      <section id="authSection">
+        <div class="card">
+          <h2>تسجيل الدخول</h2>
+          <label>البريد الإلكتروني</label>
+          <input id="email" type="email" placeholder="name@domain.com" />
+          <label>كلمة المرور</label>
+          <input id="password" type="password" placeholder="••••••••" />
+          <button id="btnLogin" class="btn primary">دخول</button>
+          <p id="authMsg" class="muted"></p>
+        </div>
+      </section>
+
+      <!-- لوحة المدير -->
+      <section id="adminSection" class="hide">
+        <div class="tabs">
+          <button data-tab="employeesTab" class="tab active">العمال</button>
+          <button data-tab="settingsTab" class="tab">إعدادات الحساب</button>
+          <button data-tab="templateTab" class="tab">قالب Excel</button>
+          <button data-tab="exportTab" class="tab">توليد كشف شهري</button>
+        </div>
+
+        <div id="employeesTab" class="tab-pane">
+          <div class="grid">
+            <div class="card">
+              <h3>إضافة/تعديل عامل</h3>
+              <label>الرقم الوظيفي</label>
+              <input id="empJobNumber" />
+              <label>الاسم</label>
+              <input id="empName" />
+              <label>الراتب الأساسي</label>
+              <input id="empBaseSalary" type="number" step="0.001" />
+              <label>المنطقة</label>
+              <input id="empRegionId" placeholder="مثال: region-1" />
+              <div class="row">
+                <button id="btnSaveEmployee" class="btn primary">حفظ</button>
+                <button id="btnResetEmployee" class="btn">تفريغ</button>
+              </div>
+              <p class="muted">يتاح التعديل للمدير فقط.</p>
+            </div>
+            <div class="card">
+              <h3>قائمة العمال</h3>
+              <div class="row">
+                <input id="filterRegion" placeholder="تصفية حسب المنطقة" />
+                <button id="btnReloadEmployees" class="btn">تحديث</button>
+              </div>
+              <table id="employeesTable">
+                <thead>
+                  <tr>
+                    <th>الرقم الوظيفي</th>
+                    <th>الاسم</th>
+                    <th>الراتب الأساسي</th>
+                    <th>المنطقة</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="settingsTab" class="tab-pane hide">
+          <div class="card">
+            <h3>إعدادات قواعد الحساب</h3>
+            <label>معامل الإضافي</label>
+            <input id="overtimeFactor" type="number" step="0.01" />
+            <label>معامل الجمع/العطل</label>
+            <input id="weekendFactor" type="number" step="0.01" />
+            <label>التقريب (مثال 0.25 أو 0.01)</label>
+            <input id="rounding" type="number" step="0.01" />
+            <button id="btnSaveSettings" class="btn primary">حفظ الإعدادات</button>
+            <p id="settingsMsg" class="muted"></p>
+          </div>
+        </div>
+
+        <div id="templateTab" class="tab-pane hide">
+          <div class="card">
+            <h3>رفع قالب Excel المرجعي</h3>
+            <input id="templateFile" type="file" accept=".xlsx" />
+            <button id="btnUploadTemplate" class="btn">رفع القالب إلى Storage</button>
+            <p class="muted">سيُحفظ باسم templates/كشف_شهري.xlsx</p>
+            <p id="templateMsg" class="muted"></p>
+          </div>
+        </div>
+
+        <div id="exportTab" class="tab-pane hide">
+          <div class="card">
+            <h3>توليد كشف Excel للشهر</h3>
+            <label>الشهر</label>
+            <input id="monthKeyAdmin" type="month" />
+            <div class="row">
+              <button id="btnExportExcel" class="btn primary">توليد ورفع</button>
+              <a id="exportLink" class="btn" href="#" target="_blank">فتح آخر كشف</a>
+            </div>
+            <p class="muted">يُجمع من جميع المناطق. يجب اعتماد الإدخالات قبل التوليد.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- لوحة المراقب -->
+      <section id="supervisorSection" class="hide">
+        <div class="card">
+          <h3>إدخالات الشهر</h3>
+          <label>الشهر</label>
+          <input id="monthKey" type="month" />
+          <div class="row">
+            <button id="btnLoadEmployeesForRegion" class="btn">تحميل عمال منطقتي</button>
+            <button id="btnSaveAllEntries" class="btn primary">حفظ الكل</button>
+            <input id="csvFile" type="file" accept=".csv" />
+            <button id="btnImportCsv" class="btn">استيراد CSV</button>
+          </div>
+          <table id="entriesTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>اسم العامل</th>
+                <th>الرقم الوظيفي</th>
+                <th>أيام الدوام</th>
+                <th>أيام الإضافي</th>
+                <th>أيام الجمع/العطل</th>
+                <th>ملاحظات</th>
+                <th>إجمالي تقديري</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p class="muted">الحساب تقديري لحين اعتماد المدير. الراتب اليومي يعتمد أيام الشهر الفعلية.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="container muted small">
+      &copy; بلدية مادبا - قسم الحاسوب
+    </footer>
+
+    <!-- مكتبة SheetJS لتوليد Excel في المتصفح -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- تطبيقنا -->
+    <script type="module" src="./app.js"></script>
+  </body>
+  </html>
+
+
