@@ -147,7 +147,7 @@ export const useFirestoreCRUD = <T extends { id?: string }>(collectionName: stri
       const db = getFirebaseDb();
       if (!db) throw new Error('Firebase غير مُهيأ');
 
-      let q = collection(db, collectionName);
+      let q: any = collection(db, collectionName);
       
       // إضافة شروط البحث
       if (conditions.length > 0) {
@@ -165,7 +165,7 @@ export const useFirestoreCRUD = <T extends { id?: string }>(collectionName: stri
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data()
+        ...(doc.data() as any)
       })) as T[];
     } catch (err: any) {
       const errorMessage = 'خطأ في البحث في البيانات';

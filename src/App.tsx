@@ -29,9 +29,9 @@ function App() {
   const { isInitialized, isLoading, error, retry } = useFirebaseInit();
   const [toasts, setToasts] = useState<ToastProps[]>([]);
 
-  const addToast = (toast: Omit<ToastProps, 'id'>) => {
+  const addToast = (toast: Omit<ToastProps, 'id' | 'onClose'>) => {
     const id = Math.random().toString(36).substr(2, 9);
-    setToasts(prev => [...prev, { ...toast, id }]);
+    setToasts(prev => [...prev, { ...toast, id, onClose: removeToast }]);
   };
 
   const removeToast = (id: string) => {

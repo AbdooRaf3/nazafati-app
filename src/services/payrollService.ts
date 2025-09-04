@@ -1,5 +1,5 @@
 import { FirestoreService } from './firestoreService';
-import { MonthlyEntry, Employee, SalaryRules } from '../types';
+
 import { calculateTotalSalary } from '../utils/calcSalary';
 
 export interface PayrollRow {

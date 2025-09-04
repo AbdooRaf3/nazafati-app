@@ -6,7 +6,7 @@ import {
   onAuthStateChanged,
   User as FirebaseUser 
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseDb } from '../services/firebase-init';
 import { User, AuthState } from '../types';
 
@@ -41,8 +41,12 @@ export const useAuth = (): AuthState & {
         const userData = userDoc.data() as Omit<User, 'uid'>;
         
         // التحقق من وجود حقول التاريخ قبل استدعاء toDate()
-        const createdAt = userData.createdAt ? userData.createdAt.toDate() : new Date();
-        const updatedAt = userData.updatedAt ? userData.updatedAt.toDate() : new Date();
+        const createdAt = userData.createdAt && typeof userData.createdAt === 'object' && 'toDate' in userData.createdAt
+          ? (userData.createdAt as any).toDate() 
+          : new Date(userData.createdAt || Date.now());
+        const updatedAt = userData.updatedAt && typeof userData.updatedAt === 'object' && 'toDate' in userData.updatedAt
+          ? (userData.updatedAt as any).toDate() 
+          : new Date(userData.updatedAt || Date.now());
         
         setUser({
           uid: firebaseUser.uid,
@@ -128,8 +132,12 @@ export const useAuth = (): AuthState & {
               const userData = userDoc.data() as Omit<User, 'uid'>;
               
               // التحقق من وجود حقول التاريخ قبل استدعاء toDate()
-              const createdAt = userData.createdAt ? userData.createdAt.toDate() : new Date();
-              const updatedAt = userData.updatedAt ? userData.updatedAt.toDate() : new Date();
+              const createdAt = userData.createdAt && typeof userData.createdAt === 'object' && 'toDate' in userData.createdAt
+                ? (userData.createdAt as any).toDate() 
+                : new Date(userData.createdAt || Date.now());
+              const updatedAt = userData.updatedAt && typeof userData.updatedAt === 'object' && 'toDate' in userData.updatedAt
+                ? (userData.updatedAt as any).toDate() 
+                : new Date(userData.updatedAt || Date.now());
               
               setUser({
                 uid: firebaseUser.uid,

@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { PayrollRow, PayrollSummary } from './payrollService';
+import { PayrollSummary } from './payrollService';
 import { formatArabicMonth } from '../utils/formatDate';
 
 export class ExcelService {
@@ -58,7 +58,7 @@ export class ExcelService {
   }
 
   private static createPayrollRows(payrollData: PayrollSummary): any[] {
-    return payrollData.rows.map((row, index) => ({
+    return payrollData.rows.map((row) => ({
       'رقم الوظيفة': row.jobNumber,
       'اسم الموظف': row.name,
       'أيام العمل': row.daysWorked,

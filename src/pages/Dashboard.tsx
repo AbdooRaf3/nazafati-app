@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
+
 import { useRegionAccess } from '../hooks/useRegionAccess';
 import { PageContainer } from '../components/Layout/PageContainer';
 import { Card } from '../components/ui/Card';
@@ -7,7 +7,7 @@ import { Button } from '../components/ui/Button';
 import { FirestoreService } from '../services/firestoreService';
 import { PayrollService } from '../services/payrollService';
 import { formatArabicMonth, getCurrentMonthKey } from '../utils/formatDate';
-import { ROLES } from '../constants/roles';
+
 
 interface DashboardStats {
   totalEmployees: number;
@@ -17,7 +17,7 @@ interface DashboardStats {
 }
 
 export const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+
   const { canViewAllRegions, canGeneratePayroll } = useRegionAccess();
   const [stats, setStats] = useState<DashboardStats>({
     totalEmployees: 0,

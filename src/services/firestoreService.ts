@@ -255,6 +255,21 @@ export class FirestoreService {
     }
   }
 
+  // دالة عامة لتحديث المستندات
+  static async updateDocument(collectionName: string, documentId: string, data: any): Promise<void> {
+    try {
+      const db = this.getDb();
+      const docRef = doc(db, collectionName, documentId);
+      await updateDoc(docRef, {
+        ...data,
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error(`خطأ في تحديث المستند في ${collectionName}:`, error);
+      throw new Error(`فشل في تحديث المستند في ${collectionName}`);
+    }
+  }
+
   // خدمات المستخدمين
   static async getUser(uid: string): Promise<User | null> {
     try {
