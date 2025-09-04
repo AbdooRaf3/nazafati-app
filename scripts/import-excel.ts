@@ -78,7 +78,7 @@ function readExcelFile(filePath: string): ExcelRow[] {
     const workbook = XLSX.readFile(filePath);
     const sheetName = workbook.SheetNames[0]; // أول ورقة
     const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet);
+    const data = XLSX.utils.sheet_to_json(worksheet) as ExcelRow[];
     
     console.log(`تم قراءة ${data.length} صف من الملف`);
     return data;

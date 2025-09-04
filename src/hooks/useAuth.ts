@@ -74,9 +74,11 @@ export const useAuth = (): AuthState & {
               createdAt: userByEmail.createdAt,
               updatedAt: userByEmail.updatedAt
             });
-          } else {
-            throw new Error('بيانات المستخدم غير موجودة في قاعدة البيانات');
-          }
+                     } else {
+             // إذا لم يتم العثور على المستخدم، تسجيل الخروج
+             await firebaseSignOut(auth);
+             throw new Error('بيانات المستخدم غير موجودة في قاعدة البيانات');
+           }
         }
       } catch (error) {
         console.error('خطأ في جلب بيانات المستخدم:', error);
@@ -174,23 +176,30 @@ export const useAuth = (): AuthState & {
               });
             } else {
               // إذا لم يتم العثور عليه بالـ UID، البحث بالبريد الإلكتروني
-              try {
-                const { FirestoreService } = await import('../services/firestoreService');
-                const userByEmail = await FirestoreService.getUserByEmail(firebaseUser.email || '');
-                
-                if (userByEmail) {
-                  setUser({
-                    uid: firebaseUser.uid, // استخدام UID من Authentication
-                    name: userByEmail.name,
-                    email: userByEmail.email,
-                    role: userByEmail.role,
-                    regionId: userByEmail.regionId,
-                    createdAt: userByEmail.createdAt,
-                    updatedAt: userByEmail.updatedAt
-                  });
+              if (firebaseUser.email) {
+                try {
+                  const { FirestoreService } = await import('../services/firestoreService');
+                  const userByEmail = await FirestoreService.getUserByEmail(firebaseUser.email);
+                  
+                  if (userByEmail) {
+                    setUser({
+                      uid: firebaseUser.uid, // استخدام UID من Authentication
+                      name: userByEmail.name,
+                      email: userByEmail.email,
+                      role: userByEmail.role,
+                      regionId: userByEmail.regionId,
+                      createdAt: userByEmail.createdAt,
+                      updatedAt: userByEmail.updatedAt
+                    });
+                  } else {
+                    // إذا لم يتم العثور على المستخدم، تسجيل الخروج
+                    console.warn('لم يتم العثور على بيانات المستخدم في قاعدة البيانات');
+                    await firebaseSignOut(auth);
+                  }
+                } catch (emailError) {
+                  console.error('خطأ في البحث عن المستخدم بالبريد الإلكتروني:', emailError);
+                  // لا نريد إظهار خطأ للمستخدم هنا، فقط تسجيله في console
                 }
-              } catch (emailError) {
-                console.error('خطأ في البحث عن المستخدم بالبريد الإلكتروني:', emailError);
               }
             }
           }

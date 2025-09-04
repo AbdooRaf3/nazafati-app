@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
+import { useAuth } from '../hooks/useAuth';
 import { useRegionAccess } from '../hooks/useRegionAccess';
 import { PageContainer } from '../components/Layout/PageContainer';
 import { Card } from '../components/ui/Card';
@@ -18,6 +19,7 @@ interface DashboardStats {
 
 export const Dashboard: React.FC = () => {
 
+  const { user, loading: authLoading } = useAuth();
   const { canViewAllRegions, canGeneratePayroll } = useRegionAccess();
   const [stats, setStats] = useState<DashboardStats>({
     totalEmployees: 0,
@@ -29,6 +31,11 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const loadDashboardData = async () => {
+      // لا نحمل البيانات إلا إذا كان المستخدم مسجل دخول
+      if (!user || authLoading) {
+        return;
+      }
+
       try {
         setLoading(true);
         const currentMonth = getCurrentMonthKey();
@@ -47,13 +54,20 @@ export const Dashboard: React.FC = () => {
         });
       } catch (error) {
         console.error('خطأ في تحميل بيانات لوحة التحكم:', error);
+        // في حالة الخطأ، نضع قيم افتراضية
+        setStats({
+          totalEmployees: 0,
+          totalRegions: 0,
+          currentMonthEntries: 0,
+          currentMonthSalary: 0
+        });
       } finally {
         setLoading(false);
       }
     };
 
     loadDashboardData();
-  }, []);
+  }, [user, authLoading]);
 
   const StatCard: React.FC<{ title: string; value: string | number; subtitle?: string }> = ({ 
     title, 
@@ -69,11 +83,25 @@ export const Dashboard: React.FC = () => {
     </Card>
   );
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <PageContainer>
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  // إذا لم يكن المستخدم مسجل دخول، نعرض رسالة
+  if (!user) {
+    return (
+      <PageContainer>
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">يرجى تسجيل الدخول</h2>
+            <p className="text-gray-600">يجب تسجيل الدخول لعرض لوحة التحكم</p>
+          </div>
         </div>
       </PageContainer>
     );

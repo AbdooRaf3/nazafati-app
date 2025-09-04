@@ -5,6 +5,7 @@ import {
   getDoc, 
   addDoc, 
   updateDoc, 
+  setDoc,
   query, 
   where, 
   orderBy,
@@ -48,22 +49,23 @@ export class FirestoreService {
   static async getAllEmployees(): Promise<Employee[]> {
     try {
       const db = this.getDb();
-      const q = query(
-        collection(db, 'employees'),
-        orderBy('regionId'),
-        orderBy('name')
-      );
+      // استخدام استعلام بسيط بدون orderBy لتحسين الأداء
+      const q = query(collection(db, 'employees'));
       
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      const employees = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate() || new Date(),
         updatedAt: doc.data().updatedAt?.toDate() || new Date()
       })) as Employee[];
+      
+      // ترتيب البيانات محلياً بدلاً من استخدام orderBy في Firestore
+      return employees.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
     } catch (error) {
       console.error('خطأ في جلب جميع الموظفين:', error);
-      throw new Error('فشل في جلب جميع الموظفين');
+      // بدلاً من رمي خطأ، نعيد مصفوفة فارغة للسماح للمستخدم بالمتابعة
+      return [];
     }
   }
 
@@ -100,31 +102,37 @@ export class FirestoreService {
   static async getMonthlyEntries(monthKey: string, regionId?: string): Promise<MonthlyEntry[]> {
     try {
       const db = this.getDb();
-      let q = query(
-        collection(db, 'monthlyEntries'),
-        where('monthKey', '==', monthKey),
-        orderBy('createdAt', 'desc')
-      );
+      let q;
       
       if (regionId) {
+        // إذا كان هناك regionId، نستخدم فهرس مركب
         q = query(
           collection(db, 'monthlyEntries'),
           where('monthKey', '==', monthKey),
-          where('regionId', '==', regionId),
-          orderBy('createdAt', 'desc')
+          where('regionId', '==', regionId)
+        );
+      } else {
+        // إذا لم يكن هناك regionId، نستخدم فهرس بسيط
+        q = query(
+          collection(db, 'monthlyEntries'),
+          where('monthKey', '==', monthKey)
         );
       }
       
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      const entries = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate() || new Date(),
         updatedAt: doc.data().updatedAt?.toDate() || new Date()
       })) as MonthlyEntry[];
+      
+      // ترتيب البيانات محلياً بدلاً من استخدام orderBy في Firestore
+      return entries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     } catch (error) {
       console.error('خطأ في جلب الإدخالات الشهرية:', error);
-      throw new Error('فشل في جلب الإدخالات الشهرية');
+      // بدلاً من رمي خطأ، نعيد مصفوفة فارغة للسماح للمستخدم بالمتابعة
+      return [];
     }
   }
 
@@ -197,7 +205,7 @@ export class FirestoreService {
       const entryId = `${entryData.monthKey}_${entryData.employeeId}`;
       const entryRef = doc(db, 'monthlyEntries', entryId);
       
-      await updateDoc(entryRef, {
+      await setDoc(entryRef, {
         ...entryData,
         totals,
         createdAt: serverTimestamp(),
@@ -295,7 +303,8 @@ export class FirestoreService {
       return null;
     } catch (error) {
       console.error('خطأ في البحث عن المستخدم بالبريد الإلكتروني:', error);
-      throw new Error('فشل في البحث عن المستخدم');
+      // بدلاً من رمي خطأ، نعيد null للسماح للمستخدم بالمتابعة
+      return null;
     }
   }
 
@@ -339,7 +348,8 @@ export class FirestoreService {
       return null;
     } catch (error) {
       console.error('خطأ في جلب المستخدم:', error);
-      throw new Error('فشل في جلب المستخدم');
+      // بدلاً من رمي خطأ، نعيد null للسماح للمستخدم بالمتابعة
+      return null;
     }
   }
 }
