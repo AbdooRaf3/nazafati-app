@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Employee, MonthlyEntry, SalaryRules } from '../types';
 import { Button } from '../components/ui/Button';
 import { calculateTotalSalary } from '../utils/calcSalary';
+import { formatArabicDate as formatDate } from '../utils/formatDate';
 
 const SETTINGS_DOC_ID = 'salaryRules';
 
