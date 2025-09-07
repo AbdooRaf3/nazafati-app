@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { PayrollService, PayrollSummary } from '../../services/payrollService';
-import { Button } from '../../components/ui/Button';
-import { Table } from '../../components/ui/Table';
+import { PayrollService, PayrollSummary } from '../services/payrollService';
+import { Button } from '../components/ui/Button';
+import { Table } from '../components/ui/Table';
 
 export const Payroll: React.FC = () => {
   const [payrollData, setPayrollData] = useState<PayrollSummary | null>(null);

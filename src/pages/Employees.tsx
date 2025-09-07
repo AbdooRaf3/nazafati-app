@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useFirestoreCRUD } from '../../hooks/useFirestoreCRUD';
-import { Employee } from '../../types';
-import { EmployeeForm } from '../../components/forms/EmployeeForm';
-import { Modal } from '../../components/ui/Modal';
-import { Button } from '../../components/ui/Button';
-import { Table } from '../../components/ui/Table';
-import { formatDate } from '../../utils/formatDate';
+import { useFirestoreCRUD } from '../hooks/useFirestoreCRUD';
+import { Employee } from '../types';
+import { EmployeeForm } from '../components/forms/EmployeeForm';
+import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
+import { Table } from '../components/ui/Table';
+import { formatArabicDate as formatDate } from '../utils/formatDate';
 
 export const Employees: React.FC = () => {
   const { getCollection, addDocument, updateDocument, deleteDocument, loading, error } = useFirestoreCRUD<Employee>('employees');

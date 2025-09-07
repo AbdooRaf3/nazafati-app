@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { useFirestoreCRUD } from '../../hooks/useFirestoreCRUD';
-import { SalaryRules } from '../../types';
-import { Button } from '../../components/ui/Button';
+import { useFirestoreCRUD } from '../hooks/useFirestoreCRUD';
+import { SalaryRules } from '../types';
+import { Button } from '../components/ui/Button';
 
 const SETTINGS_DOC_ID = 'salaryRules'; // Document ID for salary rules
 
 export const Settings: React.FC = () => {
-  const { getDocument, updateDocument, loading, error } = useFirestoreCRUD<SalaryRules>('settings';
+  const { getDocument, updateDocument, loading, error } = useFirestoreCRUD<SalaryRules>('settings');
   const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<SalaryRules>();
   const [isLoading, setIsLoading] = useState(true);
 

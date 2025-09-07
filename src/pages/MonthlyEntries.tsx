@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useFirestoreCRUD } from '../../hooks/useFirestoreCRUD';
-import { useAuth } from '../../hooks/useAuth';
-import { Employee, MonthlyEntry, SalaryRules } from '../../types';
-import { Button } from '../../components/ui/Button';
-import { calculateTotalSalary } from '../../utils/calcSalary';
+import { useFirestoreCRUD } from '../hooks/useFirestoreCRUD';
+import { useAuth } from '../hooks/useAuth';
+import { Employee, MonthlyEntry, SalaryRules } from '../types';
+import { Button } from '../components/ui/Button';
+import { calculateTotalSalary } from '../utils/calcSalary';
 
 const SETTINGS_DOC_ID = 'salaryRules';
 
