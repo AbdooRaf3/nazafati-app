@@ -4,6 +4,10 @@ import { useFirebaseInit } from './hooks/useFirebaseInit';
 import { useAuth } from './hooks/useAuth';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
+import { Employees } from './pages/Employees';
+import { MonthlyEntries } from './pages/MonthlyEntries';
+import { Payroll } from './pages/Payroll';
+import { Settings } from './pages/Settings';
 import { ToastContainer, ToastProps } from './components/ui/Toast';
 
 // Protected Route Component
@@ -101,7 +105,7 @@ function App() {
           path="/employees"
           element={
             <ProtectedRoute>
-              <div>صفحة إدارة الموظفين - قيد التطوير</div>
+              <Employees />
             </ProtectedRoute>
           }
         />
@@ -109,7 +113,7 @@ function App() {
           path="/monthly-entries"
           element={
             <ProtectedRoute>
-              <div>صفحة الإدخالات الشهرية - قيد التطوير</div>
+              <MonthlyEntries />
             </ProtectedRoute>
           }
         />
@@ -117,7 +121,7 @@ function App() {
           path="/payroll"
           element={
             <ProtectedRoute>
-              <div>صفحة كشوف الرواتب - قيد التطوير</div>
+              <Payroll />
             </ProtectedRoute>
           }
         />
@@ -125,7 +129,7 @@ function App() {
           path="/settings"
           element={
             <ProtectedRoute>
-              <div>صفحة الإعدادات - قيد التطوير</div>
+              <Settings />
             </ProtectedRoute>
           }
         />
