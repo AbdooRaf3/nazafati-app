@@ -1,15 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { initializeFirebase } from './services/firebase-init';
 import { FirebaseProvider } from './contexts/FirebaseContext';
 import { useAuth } from './hooks/useAuth';
-import { Login } from './pages/Login';
-import { Dashboard } from './pages/Dashboard';
-import { Employees } from './pages/Employees';
-import { MonthlyEntries } from './pages/MonthlyEntries';
-import { Payroll } from './pages/Payroll';
-import { Settings } from './pages/Settings';
+const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
+const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const Employees = React.lazy(() => import('./pages/Employees').then(m => ({ default: m.Employees })));
+const MonthlyEntries = React.lazy(() => import('./pages/MonthlyEntries').then(m => ({ default: m.MonthlyEntries })));
+const Payroll = React.lazy(() => import('./pages/Payroll').then(m => ({ default: m.Payroll })));
+const Settings = React.lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 import { ToastContainer, ToastProps } from './components/ui/Toast';
 import { FirebaseApp } from 'firebase/app';
 import { Auth } from 'firebase/auth';
@@ -105,16 +105,22 @@ function App() {
 
   return (
     <FirebaseProvider value={firebase}>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
-        <Route path="/monthly-entries" element={<ProtectedRoute><MonthlyEntries /></ProtectedRoute>} />
-        <Route path="/payroll" element={<ProtectedRoute><Payroll /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
+      <Suspense fallback={(
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+      )}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
+          <Route path="/monthly-entries" element={<ProtectedRoute><MonthlyEntries /></ProtectedRoute>} />
+          <Route path="/payroll" element={<ProtectedRoute><Payroll /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Suspense>
       <ToastContainer toasts={toasts} onClose={removeToast} />
     </FirebaseProvider>
   );

@@ -70,12 +70,12 @@ export const Employees: React.FC = () => {
     { 
       header: 'تاريخ الإنشاء', 
       accessor: 'createdAt', 
-      render: (item: Employee) => formatDate(item.createdAt) 
+      render: (value: any) => formatDate(value) 
     },
     {
       header: 'إجراءات',
       accessor: 'id',
-      render: (item: Employee) => (
+      render: (_: any, item: Employee) => (
         <div className="space-x-2">
           <Button onClick={() => handleEditEmployee(item)} size="sm">تعديل</Button>
           <Button onClick={() => handleDeleteEmployee(item.id!)} variant="danger" size="sm">حذف</Button>
@@ -92,7 +92,7 @@ export const Employees: React.FC = () => {
       </div>
 
       {loading && <p>جاري التحميل...</p>}
-      {error && <p className="text-red-500">{error}</p>}
+      {error && <p className="text-red-500">{error.message}</p>}
 
       {!loading && !error && <Table columns={columns} data={employees} />}
 

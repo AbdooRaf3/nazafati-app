@@ -99,7 +99,7 @@ export const Settings: React.FC = () => {
                 </div>
             </div>
 
-            {error && <p className="text-red-500 my-4">{error}</p>}
+            {error && <p className="text-red-500 my-4">{error.message}</p>}
 
             <div className="mt-6">
                 <Button type="submit" disabled={loading || !isDirty}>

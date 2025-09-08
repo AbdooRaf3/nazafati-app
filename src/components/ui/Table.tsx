@@ -1,8 +1,9 @@
 import React from 'react';
 import classNames from 'classnames';
 
-interface Column<T> {
-  key: string;
+export interface Column<T> {
+  key?: string;
+  accessor?: string;
   header: string;
   render?: (value: any, item: T) => React.ReactNode;
   className?: string;
@@ -46,7 +47,7 @@ export function Table<T>({
           <tr>
             {columns.map((column) => (
               <th
-                key={column.key}
+                key={(column.key || column.accessor) as string}
                 className={classNames(
                   'px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider',
                   column.className
@@ -62,15 +63,15 @@ export function Table<T>({
             <tr key={index} className="hover:bg-gray-50">
               {columns.map((column) => (
                 <td
-                  key={column.key}
+                  key={(column.key || column.accessor) as string}
                   className={classNames(
                     'px-6 py-4 whitespace-nowrap text-sm text-gray-900',
                     column.className
                   )}
                 >
-                  {column.render 
-                    ? column.render((item as any)[column.key], item)
-                    : (item as any)[column.key]
+                  {column.render
+                    ? column.render((item as any)[(column.key || column.accessor) as string], item)
+                    : (item as any)[(column.key || column.accessor) as string]
                   }
                 </td>
               ))}

@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Employee, MonthlyEntry, SalaryRules } from '../types';
 import { Button } from '../components/ui/Button';
 import { calculateTotalSalary } from '../utils/calcSalary';
-import { formatArabicDate as formatDate } from '../utils/formatDate';
+// import { formatArabicDate as formatDate } from '../utils/formatDate';
 
 const SETTINGS_DOC_ID = 'salaryRules';
 
@@ -34,7 +34,7 @@ export const MonthlyEntries: React.FC = () => {
         getSettings(SETTINGS_DOC_ID),
       ]);
 
-      setEmployees(employeesData.filter(e => e.status === 'active'));
+      setEmployees(employeesData.filter((e: Employee) => e.status === 'active'));
       setSalaryRules(rulesData);
 
     } catch (err) {
@@ -50,7 +50,7 @@ export const MonthlyEntries: React.FC = () => {
         // TODO: Add region filtering based on user role
       ]);
       
-      const entriesMap = entriesData.reduce((acc, entry) => {
+      const entriesMap = entriesData.reduce((acc: Record<string, MonthlyEntry>, entry: MonthlyEntry) => {
         acc[entry.employeeId] = entry;
         return acc;
       }, {} as Record<string, MonthlyEntry>);

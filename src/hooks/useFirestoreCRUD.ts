@@ -1,13 +1,15 @@
 
 import { useState, useCallback } from 'react';
-import { 
-  collection, 
-  getDocs, 
-  doc, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  addDoc,
+  updateDoc,
   deleteDoc,
+  query as buildQuery,
+  where,
   Query,
   DocumentData,
   FirestoreError
@@ -21,7 +23,7 @@ interface FirestoreCRUDState<T> {
   error: FirestoreError | null;
 }
 
-export const useFirestoreCRUD = <T extends { id: string }> (collectionName: string) => {
+export const useFirestoreCRUD = <T>(collectionName: string) => {
   const { db } = useFirebase();
   const [state, setState] = useState<FirestoreCRUDState<T>>({
     data: null,
@@ -79,7 +81,8 @@ export const useFirestoreCRUD = <T extends { id: string }> (collectionName: stri
     setState(prevState => ({ ...prevState, loading: true, error: null }));
     try {
       const docRef = doc(db, collectionName, id);
-      await updateDoc(docRef, item);
+      // Cast to avoid overly strict converter generics in Firestore typings
+      await updateDoc(docRef as any, item as any);
       setState(prevState => ({ ...prevState, loading: false }));
     } catch (error) {
       setState(prevState => ({ ...prevState, loading: false, error: error as FirestoreError }));
@@ -99,5 +102,70 @@ export const useFirestoreCRUD = <T extends { id: string }> (collectionName: stri
     }
   }, [db, collectionName]);
 
-  return { ...state, fetchData, fetchItem, createItem, updateItem, deleteItem };
+  // Backward/compat helpers expected by pages
+  const getCollection = useCallback(async () => {
+    await fetchData();
+    return state.data ?? [];
+  }, [fetchData, state.data]);
+
+  const addDocument = useCallback(async (payload: Omit<T, 'id'>) => {
+    if (!db) return '';
+    const ref = await addDoc(collection(db, collectionName), payload);
+    return ref.id;
+  }, [db, collectionName]);
+
+  const updateDocument = useCallback(async (id: string, payload: Partial<T>) => {
+    await updateItem(id, payload);
+  }, [updateItem]);
+
+  const deleteDocument = useCallback(async (id: string) => {
+    await deleteItem(id);
+  }, [deleteItem]);
+
+  type Filter = { field: string; operator: any; value: any };
+  const queryCollection = useCallback(async (filters: Filter[]) => {
+    if (!db) return [] as T[];
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const q = buildQuery(
+        collection(db, collectionName),
+        ...filters.map(f => where(f.field as any, f.operator, f.value))
+      );
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as T));
+      setState(prev => ({ ...prev, loading: false, data }));
+      return data;
+    } catch (error) {
+      setState(prev => ({ ...prev, loading: false, error: error as FirestoreError }));
+      return [] as T[];
+    }
+  }, [db, collectionName]);
+
+  const getDocument = useCallback(async (id: string) => {
+    if (!db) return null;
+    try {
+      const ref = doc(db, collectionName, id);
+      const snap = await getDoc(ref);
+      return snap.exists() ? ({ id: snap.id, ...snap.data() } as T) : null;
+    } catch (error) {
+      setState(prev => ({ ...prev, error: error as FirestoreError }));
+      return null;
+    }
+  }, [db, collectionName]);
+
+  return {
+    ...state,
+    fetchData,
+    fetchItem,
+    createItem,
+    updateItem,
+    deleteItem,
+    // compatibility API used by pages
+    getCollection,
+    addDocument,
+    updateDocument,
+    deleteDocument,
+    queryCollection,
+    getDocument
+  };
 };
