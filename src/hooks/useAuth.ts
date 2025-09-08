@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { 
   signInWithEmailAndPassword, 
@@ -7,125 +8,106 @@ import {
   User as FirebaseUser 
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseDb } from '../services/firebase-init';
+import { useFirebase } from '../contexts/FirebaseContext';
 import { User, AuthState } from '../types';
+import { FirestoreService } from '../services/firestoreService';
 
 export const useAuth = (): AuthState & {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   signInAnonymous: () => Promise<void>;
 } => {
+  const { auth, db } = useFirebase();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    if (!auth || !db) return;
+
     try {
       setError(null);
       setLoading(true);
-      
-      const auth = getFirebaseAuth();
-      const db = getFirebaseDb();
-      
-      if (!auth || !db) {
-        throw new Error('Firebase غير مُهيأ');
-      }
 
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
       
-      // جلب بيانات المستخدم من Firestore
-      try {
-        // أولاً: محاولة البحث بالـ UID
-        let userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      let userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as Omit<User, 'uid'>;
-          
-          // التحقق من وجود حقول التاريخ قبل استدعاء toDate()
-          const createdAt = userData.createdAt && typeof userData.createdAt === 'object' && 'toDate' in userData.createdAt
-            ? (userData.createdAt as any).toDate() 
-            : new Date(userData.createdAt || Date.now());
-          const updatedAt = userData.updatedAt && typeof userData.updatedAt === 'object' && 'toDate' in userData.updatedAt
-            ? (userData.updatedAt as any).toDate() 
-            : new Date(userData.updatedAt || Date.now());
-          
+      if (userDoc.exists()) {
+        const userData = userDoc.data() as Omit<User, 'uid'>;
+        
+        const createdAt = userData.createdAt && typeof userData.createdAt === 'object' && 'toDate' in userData.createdAt
+          ? (userData.createdAt as any).toDate() 
+          : new Date(userData.createdAt || Date.now());
+        const updatedAt = userData.updatedAt && typeof userData.updatedAt === 'object' && 'toDate' in userData.updatedAt
+          ? (userData.updatedAt as any).toDate() 
+          : new Date(userData.updatedAt || Date.now());
+        
+        setUser({
+          uid: firebaseUser.uid,
+          name: userData.name || 'User',
+          email: userData.email || 'user@example.com',
+          role: userData.role || 'user',
+          regionId: userData.regionId,
+          createdAt,
+          updatedAt
+        });
+      } else {
+        const userByEmail = await FirestoreService.getUserByEmail(db, firebaseUser.email || '');
+        
+        if (userByEmail) {
           setUser({
             uid: firebaseUser.uid,
-            name: userData.name || 'مستخدم',
-            email: userData.email || 'user@example.com',
-            role: userData.role || 'user',
-            regionId: userData.regionId,
-            createdAt,
-            updatedAt
+            name: userByEmail.name,
+            email: userByEmail.email,
+            role: userByEmail.role,
+            regionId: userByEmail.regionId,
+            createdAt: userByEmail.createdAt,
+            updatedAt: userByEmail.updatedAt
           });
         } else {
-          // إذا لم يتم العثور عليه بالـ UID، البحث بالبريد الإلكتروني
-          const { FirestoreService } = await import('../services/firestoreService');
-          const userByEmail = await FirestoreService.getUserByEmail(firebaseUser.email || '');
-          
-          if (userByEmail) {
-            setUser({
-              uid: firebaseUser.uid, // استخدام UID من Authentication
-              name: userByEmail.name,
-              email: userByEmail.email,
-              role: userByEmail.role,
-              regionId: userByEmail.regionId,
-              createdAt: userByEmail.createdAt,
-              updatedAt: userByEmail.updatedAt
-            });
-                     } else {
-             // إذا لم يتم العثور على المستخدم، تسجيل الخروج
-             await firebaseSignOut(auth);
-             throw new Error('بيانات المستخدم غير موجودة في قاعدة البيانات');
-           }
+           await firebaseSignOut(auth);
+           throw new Error('User data not found in the database');
         }
-      } catch (error) {
-        console.error('خطأ في جلب بيانات المستخدم:', error);
-        throw new Error('بيانات المستخدم غير موجودة');
       }
     } catch (err: any) {
-      const errorMessage = err.code === 'auth/user-not-found' ? 'المستخدم غير موجود' :
-                          err.code === 'auth/wrong-password' ? 'كلمة المرور خاطئة' :
-                          err.code === 'auth/invalid-email' ? 'البريد الإلكتروني غير صحيح' :
-                          err.message || 'خطأ في تسجيل الدخول';
+      const errorMessage = err.code === 'auth/user-not-found' ? 'User not found' :
+                        err.code === 'auth/wrong-password' ? 'Incorrect password' :
+                        err.code === 'auth/invalid-email' ? 'Invalid email' :
+                        err.message || 'Error signing in';
       setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [auth, db]);
 
   const signOut = useCallback(async () => {
+    if (!auth) return;
+
     try {
-      const auth = getFirebaseAuth();
-      if (auth) {
-        await firebaseSignOut(auth);
-        setUser(null);
-      }
+      await firebaseSignOut(auth);
+      setUser(null);
     } catch (err: any) {
-      setError('خطأ في تسجيل الخروج');
-      console.error('خطأ في تسجيل الخروج:', err);
+      setError('Error signing out');
+      console.error('Error signing out:', err);
     }
-  }, []);
+  }, [auth]);
 
   const signInAnonymous = useCallback(async () => {
+    if (!auth) return;
+
     try {
       setError(null);
       setLoading(true);
-      
-      const auth = getFirebaseAuth();
-      if (!auth) {
-        throw new Error('Firebase غير مُهيأ');
-      }
 
       const userCredential = await signInAnonymously(auth);
       const firebaseUser = userCredential.user;
       
-      // إنشاء مستخدم مؤقت
       const tempUser: User = {
         uid: firebaseUser.uid,
-        name: 'مستخدم تجريبي',
+        name: 'Demo User',
         email: 'anonymous@temp.com',
         role: 'admin',
         regionId: undefined,
@@ -135,76 +117,69 @@ export const useAuth = (): AuthState & {
       
       setUser(tempUser);
     } catch (err: any) {
-      setError('خطأ في تسجيل الدخول التجريبي');
-      console.error('خطأ في تسجيل الدخول التجريبي:', err);
+      setError('Error with anonymous sign-in');
+      console.error('Error with anonymous sign-in:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [auth]);
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (!auth) return;
+    if (!auth || !db) {
+        setLoading(false);
+        return;
+    }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser && !firebaseUser.isAnonymous) {
         try {
-          const db = getFirebaseDb();
-          if (db) {
-            // أولاً: محاولة البحث بالـ UID
-            let userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          let userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as Omit<User, 'uid'>;
             
-            if (userDoc.exists()) {
-              const userData = userDoc.data() as Omit<User, 'uid'>;
-              
-              // التحقق من وجود حقول التاريخ قبل استدعاء toDate()
-              const createdAt = userData.createdAt && typeof userData.createdAt === 'object' && 'toDate' in userData.createdAt
-                ? (userData.createdAt as any).toDate() 
-                : new Date(userData.createdAt || Date.now());
-              const updatedAt = userData.updatedAt && typeof userData.updatedAt === 'object' && 'toDate' in userData.updatedAt
-                ? (userData.updatedAt as any).toDate() 
-                : new Date(userData.updatedAt || Date.now());
-              
-              setUser({
-                uid: firebaseUser.uid,
-                name: userData.name || 'مستخدم',
-                email: userData.email || 'user@example.com',
-                role: userData.role || 'user',
-                regionId: userData.regionId,
-                createdAt,
-                updatedAt
-              });
-            } else {
-              // إذا لم يتم العثور عليه بالـ UID، البحث بالبريد الإلكتروني
-              if (firebaseUser.email) {
-                try {
-                  const { FirestoreService } = await import('../services/firestoreService');
-                  const userByEmail = await FirestoreService.getUserByEmail(firebaseUser.email);
-                  
-                  if (userByEmail) {
-                    setUser({
-                      uid: firebaseUser.uid, // استخدام UID من Authentication
-                      name: userByEmail.name,
-                      email: userByEmail.email,
-                      role: userByEmail.role,
-                      regionId: userByEmail.regionId,
-                      createdAt: userByEmail.createdAt,
-                      updatedAt: userByEmail.updatedAt
-                    });
-                  } else {
-                    // إذا لم يتم العثور على المستخدم، تسجيل الخروج
-                    console.warn('لم يتم العثور على بيانات المستخدم في قاعدة البيانات');
-                    await firebaseSignOut(auth);
-                  }
-                } catch (emailError) {
-                  console.error('خطأ في البحث عن المستخدم بالبريد الإلكتروني:', emailError);
-                  // لا نريد إظهار خطأ للمستخدم هنا، فقط تسجيله في console
+            const createdAt = userData.createdAt && typeof userData.createdAt === 'object' && 'toDate' in userData.createdAt
+              ? (userData.createdAt as any).toDate() 
+              : new Date(userData.createdAt || Date.now());
+            const updatedAt = userData.updatedAt && typeof userData.updatedAt === 'object' && 'toDate' in userData.updatedAt
+              ? (userData.updatedAt as any).toDate() 
+              : new Date(userData.updatedAt || Date.now());
+            
+            setUser({
+              uid: firebaseUser.uid,
+              name: userData.name || 'User',
+              email: userData.email || 'user@example.com',
+              role: userData.role || 'user',
+              regionId: userData.regionId,
+              createdAt,
+              updatedAt
+            });
+          } else {
+            if (firebaseUser.email) {
+              try {
+                const userByEmail = await FirestoreService.getUserByEmail(db, firebaseUser.email);
+                
+                if (userByEmail) {
+                  setUser({
+                    uid: firebaseUser.uid,
+                    name: userByEmail.name,
+                    email: userByEmail.email,
+                    role: userByEmail.role,
+                    regionId: userByEmail.regionId,
+                    createdAt: userByEmail.createdAt,
+                    updatedAt: userByEmail.updatedAt
+                  });
+                } else {
+                  console.warn('User data not found in the database');
+                  await firebaseSignOut(auth);
                 }
+              } catch (emailError) {
+                console.error('Error searching for user by email:', emailError);
               }
             }
           }
         } catch (err) {
-          console.error('خطأ في جلب بيانات المستخدم:', err);
+          console.error('Error fetching user data:', err);
         }
       } else if (!firebaseUser) {
         setUser(null);
@@ -213,7 +188,7 @@ export const useAuth = (): AuthState & {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [auth, db]);
 
   return {
     user,

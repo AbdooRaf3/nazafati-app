@@ -1,355 +1,56 @@
+
 import { 
   collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  setDoc,
   query, 
   where, 
-  orderBy,
-  serverTimestamp 
+  getDocs, 
+  limit, 
+  doc, 
+  getDoc, 
+  DocumentData, 
+  Firestore 
 } from 'firebase/firestore';
-import { getFirebaseDb } from './firebase-init';
-import { Employee, MonthlyEntry, User, SalaryRules } from '../types';
-import { calculateTotalSalary } from '../utils/calcSalary';
+import { User } from '../types';
 
-export class FirestoreService {
-  private static getDb() {
-    const db = getFirebaseDb();
-    if (!db) throw new Error('Firebase غير مُهيأ');
-    return db;
-  }
-
-  // خدمات الموظفين
-  static async getEmployeesByRegion(regionId: string): Promise<Employee[]> {
+export const FirestoreService = {
+  getUserByEmail: async (db: Firestore, email: string): Promise<User | null> => {
     try {
-      const db = this.getDb();
-      const q = query(
-        collection(db, 'employees'),
-        where('regionId', '==', regionId),
-        where('status', '==', 'active'),
-        orderBy('name')
-      );
-      
+      const q = query(collection(db, 'users'), where('email', '==', email), limit(1));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date()
-      })) as Employee[];
-    } catch (error) {
-      console.error('خطأ في جلب الموظفين:', error);
-      throw new Error('فشل في جلب الموظفين');
-    }
-  }
 
-  static async getAllEmployees(): Promise<Employee[]> {
-    try {
-      const db = this.getDb();
-      // استخدام استعلام بسيط بدون orderBy لتحسين الأداء
-      const q = query(collection(db, 'employees'));
-      
-      const querySnapshot = await getDocs(q);
-      const employees = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date()
-      })) as Employee[];
-      
-      // ترتيب البيانات محلياً بدلاً من استخدام orderBy في Firestore
-      return employees.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
-    } catch (error) {
-      console.error('خطأ في جلب جميع الموظفين:', error);
-      // بدلاً من رمي خطأ، نعيد مصفوفة فارغة للسماح للمستخدم بالمتابعة
-      return [];
-    }
-  }
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        const userData = userDoc.data() as Omit<User, 'id'>;
 
-  static async addEmployee(employeeData: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
-    try {
-      const db = this.getDb();
-      const docRef = await addDoc(collection(db, 'employees'), {
-        ...employeeData,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-      return docRef.id;
-    } catch (error) {
-      console.error('خطأ في إضافة الموظف:', error);
-      throw new Error('فشل في إضافة الموظف');
-    }
-  }
-
-  static async updateEmployee(id: string, employeeData: Partial<Employee>): Promise<void> {
-    try {
-      const db = this.getDb();
-      const docRef = doc(db, 'employees', id);
-      await updateDoc(docRef, {
-        ...employeeData,
-        updatedAt: serverTimestamp()
-      });
-    } catch (error) {
-      console.error('خطأ في تحديث الموظف:', error);
-      throw new Error('فشل في تحديث الموظف');
-    }
-  }
-
-  // خدمات الإدخالات الشهرية
-  static async getMonthlyEntries(monthKey: string, regionId?: string): Promise<MonthlyEntry[]> {
-    try {
-      const db = this.getDb();
-      let q;
-      
-      if (regionId) {
-        // إذا كان هناك regionId، نستخدم فهرس مركب
-        q = query(
-          collection(db, 'monthlyEntries'),
-          where('monthKey', '==', monthKey),
-          where('regionId', '==', regionId)
-        );
+        return {
+          id: userDoc.id,
+          ...userData
+        } as User;
       } else {
-        // إذا لم يكن هناك regionId، نستخدم فهرس بسيط
-        q = query(
-          collection(db, 'monthlyEntries'),
-          where('monthKey', '==', monthKey)
-        );
+        return null;
       }
-      
-      const querySnapshot = await getDocs(q);
-      const entries = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date()
-      })) as MonthlyEntry[];
-      
-      // ترتيب البيانات محلياً بدلاً من استخدام orderBy في Firestore
-      return entries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     } catch (error) {
-      console.error('خطأ في جلب الإدخالات الشهرية:', error);
-      // بدلاً من رمي خطأ، نعيد مصفوفة فارغة للسماح للمستخدم بالمتابعة
-      return [];
+      console.error('Error fetching user by email:', error);
+      throw error;
     }
-  }
+  },
 
-  static async saveMonthlyEntry(entryData: Omit<MonthlyEntry, 'id' | 'createdAt' | 'updatedAt' | 'totals'>): Promise<string> {
+  getUserById: async (db: Firestore, uid: string): Promise<User | null> => {
     try {
-      const db = this.getDb();
-      
-      // جلب قواعد الرواتب
-      const salaryRules = await this.getSalaryRules();
-      
-      // جلب بيانات الموظف
-      const employeeDoc = await getDoc(doc(db, 'employees', entryData.employeeId));
-      if (!employeeDoc.exists()) {
-        throw new Error('الموظف غير موجود');
-      }
-      
-      const employee = employeeDoc.data() as Employee;
-      
-      // حساب الرواتب
-      const totals = calculateTotalSalary(
-        employee.baseSalary,
-        entryData.daysWorked,
-        entryData.overtimeDays,
-        entryData.weekendDays,
-        salaryRules
-      );
-      
-      // إنشاء أو تحديث الإدخال
-      const entryId = `${entryData.monthKey}_${entryData.employeeId}`;
-      const entryRef = doc(db, 'monthlyEntries', entryId);
-      
-      await updateDoc(entryRef, {
-        ...entryData,
-        totals,
-        updatedAt: serverTimestamp()
-      });
-      
-      return entryId;
-    } catch (error) {
-      console.error('خطأ في حفظ الإدخال الشهري:', error);
-      throw new Error('فشل في حفظ الإدخال الشهري');
-    }
-  }
+      const userDoc = await getDoc(doc(db, 'users', uid));
 
-  static async createMonthlyEntry(entryData: Omit<MonthlyEntry, 'id' | 'createdAt' | 'updatedAt' | 'totals'>): Promise<string> {
-    try {
-      const db = this.getDb();
-      
-      // جلب قواعد الرواتب
-      const salaryRules = await this.getSalaryRules();
-      
-      // جلب بيانات الموظف
-      const employeeDoc = await getDoc(doc(db, 'employees', entryData.employeeId));
-      if (!employeeDoc.exists()) {
-        throw new Error('الموظف غير موجود');
-      }
-      
-      const employee = employeeDoc.data() as Employee;
-      
-      // حساب الرواتب
-      const totals = calculateTotalSalary(
-        employee.baseSalary,
-        entryData.daysWorked,
-        entryData.overtimeDays,
-        entryData.weekendDays,
-        salaryRules
-      );
-      
-      // إنشاء الإدخال
-      const entryId = `${entryData.monthKey}_${entryData.employeeId}`;
-      const entryRef = doc(db, 'monthlyEntries', entryId);
-      
-      await setDoc(entryRef, {
-        ...entryData,
-        totals,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-      
-      return entryId;
-    } catch (error) {
-      console.error('خطأ في إنشاء الإدخال الشهري:', error);
-      throw new Error('فشل في إنشاء الإدخال الشهري');
-    }
-  }
-
-  // خدمات قواعد الرواتب
-  static async getSalaryRules(): Promise<SalaryRules> {
-    try {
-      const db = this.getDb();
-      const docRef = doc(db, 'settings', 'salaryRules');
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        return docSnap.data() as SalaryRules;
-      }
-      
-      // إرجاع قواعد افتراضية إذا لم تكن موجودة
-      return {
-        daysInMonthReference: 30,
-        overtimeFactor: 1.5,
-        weekendFactor: 2,
-        rounding: 'round'
-      };
-    } catch (error) {
-      console.error('خطأ في جلب قواعد الرواتب:', error);
-      // إرجاع قواعد افتراضية في حالة الخطأ
-      return {
-        daysInMonthReference: 30,
-        overtimeFactor: 1.5,
-        weekendFactor: 2,
-        rounding: 'round'
-      };
-    }
-  }
-
-  static async updateSalaryRules(rules: Partial<SalaryRules>): Promise<void> {
-    try {
-      const db = this.getDb();
-      const docRef = doc(db, 'settings', 'salaryRules');
-      await updateDoc(docRef, {
-        ...rules,
-        updatedAt: serverTimestamp()
-      });
-    } catch (error) {
-      console.error('خطأ في تحديث قواعد الرواتب:', error);
-      throw new Error('فشل في تحديث قواعد الرواتب');
-    }
-  }
-
-  // دالة عامة لتحديث المستندات
-  static async updateDocument(collectionName: string, documentId: string, data: any): Promise<void> {
-    try {
-      const db = this.getDb();
-      const docRef = doc(db, collectionName, documentId);
-      await updateDoc(docRef, {
-        ...data,
-        updatedAt: serverTimestamp()
-      });
-    } catch (error) {
-      console.error(`خطأ في تحديث المستند في ${collectionName}:`, error);
-      throw new Error(`فشل في تحديث المستند في ${collectionName}`);
-    }
-  }
-
-  // البحث عن المستخدم بالبريد الإلكتروني
-  static async getUserByEmail(email: string): Promise<User | null> {
-    try {
-      const db = this.getDb();
-      
-      const usersQuery = query(
-        collection(db, 'users'),
-        where('email', '==', email)
-      );
-      
-      const querySnapshot = await getDocs(usersQuery);
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        const data = userDoc.data();
+      if (userDoc.exists()) {
+        const userData = userDoc.data() as Omit<User, 'id'>;
         return {
-          uid: userDoc.id,
-          ...data,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date()
+          id: userDoc.id,
+          ...userData,
         } as User;
+      } else {
+        return null;
       }
-      
-      return null;
     } catch (error) {
-      console.error('خطأ في البحث عن المستخدم بالبريد الإلكتروني:', error);
-      // بدلاً من رمي خطأ، نعيد null للسماح للمستخدم بالمتابعة
-      return null;
+      console.error('Error fetching user by ID:', error);
+      throw error;
     }
-  }
-
-  // خدمات المستخدمين
-  static async getUser(uid: string): Promise<User | null> {
-    try {
-      const db = this.getDb();
-      
-      // أولاً: محاولة البحث بالـ UID
-      let docRef = doc(db, 'users', uid);
-      let docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        return {
-          uid: docSnap.id,
-          ...data,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date()
-        } as User;
-      }
-      
-      // إذا لم يتم العثور عليه بالـ UID، البحث بالبريد الإلكتروني
-      const usersQuery = query(
-        collection(db, 'users'),
-        where('email', '==', uid) // استخدام UID كبريد إلكتروني مؤقتاً
-      );
-      
-      const querySnapshot = await getDocs(usersQuery);
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        const data = userDoc.data();
-        return {
-          uid: userDoc.id,
-          ...data,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date()
-        } as User;
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('خطأ في جلب المستخدم:', error);
-      // بدلاً من رمي خطأ، نعيد null للسماح للمستخدم بالمتابعة
-      return null;
-    }
-  }
-}
+  },
+};
