@@ -8,7 +8,9 @@
     "build": "tsc && vite build",
     "build:prod": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 50"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 50",
+    "import-real-data": "tsx scripts/import-real-data.ts",
+    "import-excel": "tsx scripts/import-excel.ts"
   },
   "dependencies": {
     "classnames": "^2.3.2",
@@ -32,6 +34,7 @@
     "eslint-plugin-react-refresh": "^0.4.5",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0",
+    "tsx": "^4.7.0",
     "typescript": "^5.2.2",
     "vite": "^7.1.5"
   }
