@@ -19,22 +19,23 @@ export const initializeFirebase = async (): Promise<{ app: FirebaseApp; auth: Au
         ignoreUndefinedProperties: true
       });
     } catch (error) {
-      console.warn('Failed to initialize Firestore with custom settings, using default settings:', error);
+      // استخدام الإعدادات الافتراضية لـ Firestore
       db = getFirestore(app);
     }
     
-    if (import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
-      try {
-        connectAuthEmulator(auth, 'http://localhost:9099');
-        connectFirestoreEmulator(db, 'localhost', 8080);
-      } catch (error) {
-        console.warn('Failed to connect to the emulator:', error);
-      }
-    }
+    // تم تعطيل Firebase Emulator مؤقتاً
+    // if (import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
+    //   try {
+    //     connectAuthEmulator(auth, 'http://localhost:9099');
+    //     connectFirestoreEmulator(db, 'localhost', 8080);
+    //   } catch (error) {
+    //     console.warn('Failed to connect to the emulator:', error);
+    //   }
+    // }
 
     return { app, auth, db };
   } catch (error) {
-    console.error('Error initializing Firebase:', error);
+    console.error('خطأ في تهيئة Firebase:', error);
     throw error;
   }
 };
