@@ -32,7 +32,7 @@ export const Card: React.FC<CardProps> = ({
             )}
           </div>
           {actions && (
-            <div className="flex items-center space-x-2 space-x-reverse">
+            <div className="flex items-center space-x-2 space-x-reverse gap-2">
               {actions}
             </div>
           )}

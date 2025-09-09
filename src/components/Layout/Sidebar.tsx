@@ -104,7 +104,7 @@ export const Sidebar: React.FC = () => {
                     }
                   )}
                 >
-                  <span className="ml-3">{item.icon}</span>
+                  <span className="mr-3">{item.icon}</span>
                   {item.label}
                 </Link>
               </li>
@@ -121,7 +121,7 @@ export const Sidebar: React.FC = () => {
               {user.name ? user.name.charAt(0) : '?'}
             </span>
           </div>
-          <div className="mr-3 flex-1 min-w-0">
+          <div className="ml-3 flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">{user.name || 'مستخدم'}</p>
             <p className="text-xs text-gray-500 truncate">{user.email || 'لا يوجد بريد إلكتروني'}</p>
           </div>
