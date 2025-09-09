@@ -9,6 +9,7 @@ import { useFirebase } from '../contexts/FirebaseContext';
 import { FirestoreService } from '../services/firestoreService';
 import { PayrollService } from '../services/payrollService';
 import { formatArabicMonth, getCurrentMonthKey } from '../utils/formatDate';
+import { formatCurrency } from '../constants/currency';
 
 
 interface DashboardStats {
@@ -138,7 +139,7 @@ export const Dashboard: React.FC = () => {
           />
           <StatCard
             title="إجمالي الرواتب"
-            value={`${stats.currentMonthSalary.toLocaleString()} ريال`}
+            value={formatCurrency(stats.currentMonthSalary)}
             subtitle="للشهر الحالي"
           />
         </div>
@@ -202,7 +203,7 @@ export const Dashboard: React.FC = () => {
               <div className="flex items-center space-x-3 space-x-reverse">
                 <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
                 <span className="text-sm text-gray-700">
-                  إجمالي الرواتب: {stats.currentMonthSalary.toLocaleString()} ريال
+                  إجمالي الرواتب: {formatCurrency(stats.currentMonthSalary)}
                 </span>
               </div>
               <span className="text-xs text-gray-500">هذا الشهر</span>

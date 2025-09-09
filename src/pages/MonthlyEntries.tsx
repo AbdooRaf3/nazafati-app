@@ -7,6 +7,7 @@ import { useRegionAccess } from '../hooks/useRegionAccess';
 import { Employee, MonthlyEntry, SalaryRules } from '../types';
 import { Button } from '../components/ui/Button';
 import { calculateTotalSalary } from '../utils/calcSalary';
+import { formatCurrency } from '../constants/currency';
 // import { formatArabicDate as formatDate } from '../utils/formatDate';
 
 const SETTINGS_DOC_ID = 'salaryRules';
@@ -223,7 +224,7 @@ export const MonthlyEntries: React.FC = () => {
                       />
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      {entry?.totals?.total?.toFixed(2) || '-'}
+                      {entry?.totals?.total ? formatCurrency(entry.totals.total) : '-'}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 

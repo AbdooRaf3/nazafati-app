@@ -3,6 +3,7 @@ import { useFirebase } from '../contexts/FirebaseContext';
 import { PayrollService, PayrollSummary } from '../services/payrollService';
 import { Button } from '../components/ui/Button';
 import { Table } from '../components/ui/Table';
+import { formatCurrency } from '../constants/currency';
 
 export const Payroll: React.FC = () => {
   const { db } = useFirebase();
@@ -51,9 +52,21 @@ export const Payroll: React.FC = () => {
     { header: 'أيام العمل', accessor: 'daysWorked' },
     { header: 'أيام إضافية', accessor: 'overtimeDays' },
     { header: 'أيام عطلة نهاية الأسبوع', accessor: 'weekendDays' },
-    { header: 'الراتب الأساسي', accessor: 'baseSalary' },
-    { header: 'الأجر اليومي', accessor: 'dailyWage' },
-    { header: 'الإجمالي', accessor: 'total' },
+    { 
+      header: 'الراتب الأساسي', 
+      accessor: 'baseSalary',
+      render: (value: number) => formatCurrency(value)
+    },
+    { 
+      header: 'الأجر اليومي', 
+      accessor: 'dailyWage',
+      render: (value: number) => formatCurrency(value)
+    },
+    { 
+      header: 'الإجمالي', 
+      accessor: 'total',
+      render: (value: number) => formatCurrency(value)
+    },
     { header: 'ملاحظات', accessor: 'notes' },
   ];
 
@@ -108,11 +121,11 @@ export const Payroll: React.FC = () => {
               </div>
               <div className="p-4 bg-gray-50 rounded-lg text-center">
                 <p className="text-sm text-gray-600 mb-1">إجمالي الرواتب الأساسية</p>
-                <p className="text-2xl font-bold text-gray-900">{payrollData.totalBaseSalary.toFixed(2)} ريال</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(payrollData.totalBaseSalary)}</p>
               </div>
               <div className="p-4 bg-primary-50 rounded-lg text-center">
                 <p className="text-sm text-primary-700 mb-1">إجمالي الرواتب المحسوبة</p>
-                <p className="text-2xl font-bold text-primary-600">{payrollData.totalCalculatedSalary.toFixed(2)} ريال</p>
+                <p className="text-2xl font-bold text-primary-600">{formatCurrency(payrollData.totalCalculatedSalary)}</p>
               </div>
             </div>
           </div>

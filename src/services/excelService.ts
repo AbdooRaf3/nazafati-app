@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { PayrollSummary } from './payrollService';
 import { formatArabicMonth } from '../utils/formatDate';
+import { formatCurrency, formatCurrencyValue } from '../constants/currency';
 
 export class ExcelService {
   static generateAndDownloadExcel(monthKey: string, payrollData: PayrollSummary): void {
@@ -64,9 +65,9 @@ export class ExcelService {
       'أيام العمل': row.daysWorked,
       'أيام العمل الإضافي': row.overtimeDays,
       'أيام العمل في العطل': row.weekendDays,
-      'الراتب الأساسي': row.baseSalary,
-      'الأجر اليومي': row.dailyWage,
-      'إجمالي الراتب': row.total,
+      'الراتب الأساسي': formatCurrencyValue(row.baseSalary),
+      'الأجر اليومي': formatCurrencyValue(row.dailyWage),
+      'إجمالي الراتب': formatCurrencyValue(row.total),
       'ملاحظات': row.notes
     }));
   }
@@ -80,11 +81,11 @@ export class ExcelService {
       { 'البند': 'إجمالي أيام العمل', 'القيمة': payrollData.totalDaysWorked },
       { 'البند': 'إجمالي أيام العمل الإضافي', 'القيمة': payrollData.totalOvertimeDays },
       { 'البند': 'إجمالي أيام العمل في العطل', 'القيمة': payrollData.totalWeekendDays },
-      { 'البند': 'إجمالي الرواتب الأساسية', 'القيمة': payrollData.totalBaseSalary },
-      { 'البند': 'إجمالي الرواتب المحسوبة', 'القيمة': payrollData.totalCalculatedSalary },
+      { 'البند': 'إجمالي الرواتب الأساسية', 'القيمة': formatCurrencyValue(payrollData.totalBaseSalary) },
+      { 'البند': 'إجمالي الرواتب المحسوبة', 'القيمة': formatCurrencyValue(payrollData.totalCalculatedSalary) },
       { 'البند': 'متوسط الراتب', 'القيمة': payrollData.totalEmployees > 0 ? 
-        Math.round(payrollData.totalCalculatedSalary / payrollData.totalEmployees) : 0 },
-      { 'البند': 'تاريخ التوليد', 'القيمة': new Date().toLocaleDateString('ar-SA') }
+        formatCurrencyValue(payrollData.totalCalculatedSalary / payrollData.totalEmployees) : '0.00' },
+      { 'البند': 'تاريخ التوليد', 'القيمة': new Date().toLocaleDateString('ar-JO') }
     ];
   }
 
@@ -126,9 +127,9 @@ export class ExcelService {
           'أيام العمل': 22,
           'أيام العمل الإضافي': 3,
           'أيام العمل في العطل': 2,
-          'الراتب الأساسي': 3000,
-          'الأجر اليومي': 100,
-          'إجمالي الراتب': 3300,
+          'الراتب الأساسي': formatCurrencyValue(3000),
+          'الأجر اليومي': formatCurrencyValue(100),
+          'إجمالي الراتب': formatCurrencyValue(3300),
           'ملاحظات': 'مثال'
         },
         {
@@ -137,9 +138,9 @@ export class ExcelService {
           'أيام العمل': 20,
           'أيام العمل الإضافي': 1,
           'أيام العمل في العطل': 1,
-          'الراتب الأساسي': 2800,
-          'الأجر اليومي': 93.33,
-          'إجمالي الراتب': 2986.67,
+          'الراتب الأساسي': formatCurrencyValue(2800),
+          'الأجر اليومي': formatCurrencyValue(93.33),
+          'إجمالي الراتب': formatCurrencyValue(2986.67),
           'ملاحظات': 'مثال'
         }
       ];

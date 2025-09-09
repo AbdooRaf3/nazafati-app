@@ -9,6 +9,7 @@ import { formatArabicDate } from '../utils/formatDate';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useEmployees } from '../hooks/useEmployees';
 import { useRegionAccess } from '../hooks/useRegionAccess';
+import { formatCurrency } from '../constants/currency';
 
 export const Employees: React.FC = () => {
   const { addDocument, updateDocument, deleteDocument, loading: crudLoading, error: crudError } = useFirestoreCRUD<Employee>('employees');
@@ -65,7 +66,11 @@ export const Employees: React.FC = () => {
   const columns = [
     { header: 'الرقم الوظيفي', accessor: 'jobNumber' },
     { header: 'الاسم', accessor: 'name' },
-    { header: 'الراتب الأساسي', accessor: 'baseSalary' },
+    { 
+      header: 'الراتب الأساسي', 
+      accessor: 'baseSalary',
+      render: (value: number) => formatCurrency(value)
+    },
     { header: 'المنطقة', accessor: 'regionId' },
     { header: 'الحالة', accessor: 'status' },
     { 
