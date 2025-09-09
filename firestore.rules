@@ -42,32 +42,51 @@ service cloud.firestore {
     
     // Users collection rules
     match /users/{userId} {
-      // Allow all operations for initial data import
-      allow read, write: if true;
+      // Only admins can create/update/delete users
+      // Everyone can read their own user document
+      allow create, update, delete: if isAdmin();
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
     }
     
     // Employees collection rules
     match /employees/{employeeId} {
-      // Allow all operations for initial data import
-      allow read, write: if true;
+      // Admins and Finance can read all employees
+      // Supervisors can only read employees in their region
+      allow read: if isAdmin() || isFinance() || isEmployeeInOwnRegion(employeeId);
+      
+      // Admins can do everything
+      allow write: if isAdmin();
+      
+      // Supervisors can create/update/delete employees in their region only
+      allow create, update, delete: if isSupervisor() && 
+        request.resource.data.regionId == getUserData().regionId;
     }
     
     // Monthly entries collection rules
     match /monthly-entries/{entryId} {
-      // Allow all operations for initial data import
-      allow read, write: if true;
+      // Admins and Finance can read all entries
+      // Supervisors can only read entries for employees in their region
+      allow read: if isAdmin() || isFinance() || 
+        (isSupervisor() && isEmployeeInOwnRegion(resource.data.employeeId));
+      
+      // Admins can do everything
+      allow write: if isAdmin();
+      
+      // Supervisors can create/update/delete entries for employees in their region
+      allow create, update, delete: if isSupervisor() && 
+        isEntryForOwnRegionFromRequest();
     }
     
     // Salary rules collection
     match /salaryRules/{ruleId} {
-      // Allow all operations for initial data import
-      allow read, write: if true;
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
     
     // Regions collection
     match /regions/{regionId} {
-      // Allow all operations for initial data import
-      allow read, write: if true;
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
   }
 }
