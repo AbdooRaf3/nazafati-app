@@ -43,8 +43,8 @@ export const Dashboard: React.FC = () => {
 
         // جلب الإحصائيات
         const [employees, payrollStats] = await Promise.all([
-          db ? FirestoreService.getAllEmployees(db) : Promise.resolve([]),
-          PayrollService.getPayrollStatistics(db!, currentMonth)
+          db ? FirestoreService.getAllEmployees(db, user.role === 'supervisor' ? user.regionId : undefined) : Promise.resolve([]),
+          PayrollService.getPayrollStatistics(db!, currentMonth, user.role === 'supervisor' ? user.regionId : undefined)
         ]);
 
         setStats({

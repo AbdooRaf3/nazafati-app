@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useFirebase } from '../contexts/FirebaseContext';
 import { useFirestoreCRUD } from '../hooks/useFirestoreCRUD';
 import { useAuth } from '../hooks/useAuth';
+import { useEmployees } from '../hooks/useEmployees';
+import { useRegionAccess } from '../hooks/useRegionAccess';
 import { Employee, MonthlyEntry, SalaryRules } from '../types';
 import { Button } from '../components/ui/Button';
 import { calculateTotalSalary } from '../utils/calcSalary';
@@ -12,7 +14,7 @@ const SETTINGS_DOC_ID = 'salaryRules';
 export const MonthlyEntries: React.FC = () => {
   const { db } = useFirebase();
   const { user } = useAuth();
-  const { getCollection: getEmployees, loading: loadingEmployees } = useFirestoreCRUD<Employee>('employees');
+  const { employees, loading: loadingEmployees, canViewAllRegions, userRegionId } = useEmployees();
   const { 
     queryCollection,
     addDocument,
@@ -21,7 +23,6 @@ export const MonthlyEntries: React.FC = () => {
   } = useFirestoreCRUD<MonthlyEntry>('monthly-entries');
   const { getDocument: getSettings } = useFirestoreCRUD<SalaryRules>('salaryRules');
 
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [monthlyEntries, setMonthlyEntries] = useState<Record<string, MonthlyEntry>>({});
   const [salaryRules, setSalaryRules] = useState<SalaryRules | null>(null);
   const [currentMonth, setCurrentMonth] = useState(() => {
@@ -31,26 +32,26 @@ export const MonthlyEntries: React.FC = () => {
 
   const fetchInitialData = useCallback(async () => {
     try {
-      const [employeesData, rulesData] = await Promise.all([
-        getEmployees(),
-        getSettings(SETTINGS_DOC_ID),
-      ]);
-
-      setEmployees(employeesData.filter((e: Employee) => e.status === 'active'));
+      const rulesData = await getSettings(SETTINGS_DOC_ID);
       setSalaryRules(rulesData);
-
     } catch (err) {
       console.error(err);
     }
-  }, [getEmployees, getSettings]);
+  }, [getSettings]);
 
   const fetchEntries = useCallback(async () => {
     if (!user) return;
     try {
-      const entriesData = await queryCollection([
-        { field: 'monthKey', operator: '==', value: currentMonth },
-        // TODO: Add region filtering based on user role
-      ]);
+      const queryConditions = [
+        { field: 'monthKey', operator: '==', value: currentMonth }
+      ];
+
+      // إضافة فلترة المنطقة للمراقبين
+      if (user.role === 'supervisor' && user.regionId) {
+        queryConditions.push({ field: 'regionId', operator: '==', value: user.regionId });
+      }
+
+      const entriesData = await queryCollection(queryConditions);
       
       const entriesMap = entriesData.reduce((acc: Record<string, MonthlyEntry>, entry: MonthlyEntry) => {
         acc[entry.employeeId] = entry;
@@ -142,7 +143,14 @@ export const MonthlyEntries: React.FC = () => {
   return (
     <div className="p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">الإدخالات الشهرية</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">الإدخالات الشهرية</h1>
+          {!canViewAllRegions && userRegionId && (
+            <p className="text-sm text-gray-600 mt-1">
+              عرض إدخالات منطقتك فقط (المنطقة: {userRegionId})
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <label htmlFor="month-select" className="text-sm font-medium text-gray-700">الشهر:</label>
           <input

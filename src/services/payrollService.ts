@@ -130,7 +130,7 @@ export class PayrollService {
     }
   }
 
-  static async getPayrollStatistics(db: Firestore, monthKey: string): Promise<{
+  static async getPayrollStatistics(db: Firestore, monthKey: string, regionId?: string): Promise<{
     totalRegions: number;
     totalEmployees: number;
     totalSalary: number;
@@ -142,7 +142,7 @@ export class PayrollService {
     }>;
   }> {
     try {
-      const entries = await FirestoreService.getMonthlyEntries(db, monthKey);
+      const entries = await FirestoreService.getMonthlyEntries(db, monthKey, regionId);
       
       // تجميع البيانات حسب المنطقة
       const regionData = new Map<string, { count: number; salary: number }>();
@@ -174,7 +174,7 @@ export class PayrollService {
     } catch (error) {
       errorHandler.handleError(error, 'getPayrollStatistics', {
         action: 'getPayrollStatistics',
-        additionalData: { monthKey }
+        additionalData: { monthKey, regionId }
       });
       throw new Error('فشل في جلب إحصائيات الرواتب');
     }

@@ -32,10 +32,7 @@ export const FirestoreService = {
         return null;
       }
     } catch (error) {
-      errorHandler.handleFirestoreError(error, 'getUserByEmail', {
-        action: 'getUserByEmail',
-        additionalData: { email }
-      });
+      errorHandler.handleFirestoreError(error, 'getUserByEmail');
       throw error;
     }
   },
@@ -54,23 +51,25 @@ export const FirestoreService = {
         return null;
       }
     } catch (error) {
-      errorHandler.handleFirestoreError(error, 'getUserById', {
-        action: 'getUserById',
-        additionalData: { uid }
-      });
+      errorHandler.handleFirestoreError(error, 'getUserById');
       throw error;
     }
   },
 
   // New helpers required by other modules/pages
-  async getAllEmployees(db: Firestore) {
+  async getAllEmployees(db: Firestore, regionId?: string) {
     try {
-      const querySnapshot = await getDocs(collection(db, 'employees'));
+      let q = query(collection(db, 'employees'));
+      
+      // إذا تم تحديد regionId، فلتر حسب المنطقة
+      if (regionId) {
+        q = query(q, where('regionId', '==', regionId));
+      }
+      
+      const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
     } catch (error) {
-      errorHandler.handleFirestoreError(error, 'getAllEmployees', {
-        action: 'getAllEmployees'
-      });
+      errorHandler.handleFirestoreError(error, 'getAllEmployees');
       return [];
     }
   },
@@ -84,10 +83,7 @@ export const FirestoreService = {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
     } catch (error) {
-      errorHandler.handleFirestoreError(error, 'getMonthlyEntries', {
-        action: 'getMonthlyEntries',
-        additionalData: { monthKey, regionId }
-      });
+      errorHandler.handleFirestoreError(error, 'getMonthlyEntries');
       return [];
     }
   },
@@ -106,9 +102,7 @@ export const FirestoreService = {
         rounding: 'round'
       } as const;
     } catch (error) {
-      errorHandler.handleFirestoreError(error, 'getSalaryRules', {
-        action: 'getSalaryRules'
-      });
+      errorHandler.handleFirestoreError(error, 'getSalaryRules');
       return {
         daysInMonthReference: 30,
         overtimeFactor: 1.5,
@@ -127,10 +121,7 @@ export const FirestoreService = {
       }
       return null;
     } catch (error) {
-      errorHandler.handleFirestoreError(error, 'getUser', {
-        action: 'getUser',
-        additionalData: { id }
-      });
+      errorHandler.handleFirestoreError(error, 'getUser');
       return null;
     }
   },
@@ -140,10 +131,7 @@ export const FirestoreService = {
       const docRef = doc(db, collection, id);
       await updateDoc(docRef, data);
     } catch (error) {
-      errorHandler.handleFirestoreError(error, 'updateDocument', {
-        action: 'updateDocument',
-        additionalData: { collection, id }
-      });
+      errorHandler.handleFirestoreError(error, 'updateDocument');
       throw error;
     }
   }

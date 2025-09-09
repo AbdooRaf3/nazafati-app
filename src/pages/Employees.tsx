@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useFirestoreCRUD } from '../hooks/useFirestoreCRUD';
 import { Employee } from '../types';
 import { EmployeeForm } from '../components/forms/EmployeeForm';
@@ -7,28 +7,18 @@ import { Button } from '../components/ui/Button';
 import { Table } from '../components/ui/Table';
 import { formatArabicDate } from '../utils/formatDate';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useEmployees } from '../hooks/useEmployees';
+import { useRegionAccess } from '../hooks/useRegionAccess';
 
 export const Employees: React.FC = () => {
-  const { getCollection, addDocument, updateDocument, deleteDocument, loading, error } = useFirestoreCRUD<Employee>('employees');
+  const { addDocument, updateDocument, deleteDocument, loading: crudLoading, error: crudError } = useFirestoreCRUD<Employee>('employees');
   const { error: errorHandlerError, clearError, executeWithErrorHandling } = useErrorHandler();
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const { employees, loading: employeesLoading, error: employeesError, fetchEmployees, canViewAllRegions, userRegionId } = useEmployees();
+  const { canManageEmployees } = useRegionAccess();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
-  const fetchEmployees = useCallback(async () => {
-    await executeWithErrorHandling(
-      async () => {
-        const data = await getCollection();
-        setEmployees(data);
-      },
-      'fetchEmployees',
-      { action: 'fetchEmployees' }
-    );
-  }, [getCollection, executeWithErrorHandling]);
-
-  useEffect(() => {
-    fetchEmployees();
-  }, [fetchEmployees]);
+  // استخدام fetchEmployees من useEmployees hook
 
   const handleAddEmployee = () => {
     setEditingEmployee(null);
@@ -45,7 +35,7 @@ export const Employees: React.FC = () => {
       await executeWithErrorHandling(
         async () => {
           await deleteDocument(id);
-          fetchEmployees();
+          fetchEmployees(); // إعادة تحميل القائمة
         },
         'deleteEmployee',
         { action: 'deleteEmployee', additionalData: { employeeId: id } }
@@ -61,7 +51,7 @@ export const Employees: React.FC = () => {
         } else {
           await addDocument(data);
         }
-        fetchEmployees();
+        fetchEmployees(); // إعادة تحميل القائمة
         setIsModalOpen(false);
       },
       'handleFormSubmit',
@@ -95,13 +85,25 @@ export const Employees: React.FC = () => {
     },
   ];
 
+  const loading = employeesLoading || crudLoading;
+  const error = employeesError || crudError || errorHandlerError;
+
   return (
     <div className="p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">إدارة الموظفين</h1>
-        <Button onClick={handleAddEmployee} className="w-full sm:w-auto">
-          إضافة موظف جديد
-        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">إدارة الموظفين</h1>
+          {!canViewAllRegions && userRegionId && (
+            <p className="text-sm text-gray-600 mt-1">
+              عرض موظفي منطقتك فقط (المنطقة: {userRegionId})
+            </p>
+          )}
+        </div>
+        {canManageEmployees() && (
+          <Button onClick={handleAddEmployee} className="w-full sm:w-auto">
+            إضافة موظف جديد
+          </Button>
+        )}
       </div>
 
       {loading && (
@@ -109,10 +111,10 @@ export const Employees: React.FC = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
         </div>
       )}
-      {(error || errorHandlerError) && (
+      {error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
           <div className="flex justify-between items-start">
-            <p className="text-red-600">{error?.message || errorHandlerError}</p>
+            <p className="text-red-600">{typeof error === 'string' ? error : error?.message || 'خطأ غير معروف'}</p>
             <Button 
               onClick={clearError} 
               variant="outline" 

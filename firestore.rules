@@ -28,6 +28,18 @@ service cloud.firestore {
         get(/databases/$(database)/documents/employees/$(request.resource.data.employeeId)).data.regionId == getUserData().regionId;
     }
     
+    function isEmployeeInOwnRegion(employeeId) {
+      return isSupervisor() && 
+        exists(/databases/$(database)/documents/employees/$(employeeId)) &&
+        get(/databases/$(database)/documents/employees/$(employeeId)).data.regionId == getUserData().regionId;
+    }
+    
+    function isFinance() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().role == 'finance';
+    }
+    
     // Users collection rules
     match /users/{userId} {
       // Only admins can create/update/delete users
@@ -38,21 +50,24 @@ service cloud.firestore {
     
     // Employees collection rules
     match /employees/{employeeId} {
-      // Allow read access for all authenticated users during development
-      allow read: if isAuthenticated();
+      // Admins and Finance can read all employees
+      // Supervisors can only read employees in their region
+      allow read: if isAdmin() || isFinance() || isEmployeeInOwnRegion(employeeId);
       
       // Admins can do everything
       allow write: if isAdmin();
       
-      // Supervisors can create/update/delete employees in their region
+      // Supervisors can create/update/delete employees in their region only
       allow create, update, delete: if isSupervisor() && 
         request.resource.data.regionId == getUserData().regionId;
     }
     
     // Monthly entries collection rules
     match /monthly-entries/{entryId} {
-      // Allow read access for all authenticated users during development
-      allow read: if isAuthenticated();
+      // Admins and Finance can read all entries
+      // Supervisors can only read entries for employees in their region
+      allow read: if isAdmin() || isFinance() || 
+        (isSupervisor() && isEmployeeInOwnRegion(resource.data.employeeId));
       
       // Admins can do everything
       allow write: if isAdmin();

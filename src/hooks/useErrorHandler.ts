@@ -23,7 +23,7 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
 
   const handleError = useCallback((error: any, context: string, additionalContext?: Partial<ErrorContext>) => {
     errorHandler.handleError(error, context, additionalContext);
-    setError(errorHandler.extractErrorMessage(error));
+    setError(typeof error === 'string' ? error : error?.message || 'خطأ غير معروف');
   }, []);
 
   const handleFirebaseError = useCallback((error: any, context: string, additionalContext?: Partial<ErrorContext>): string => {
