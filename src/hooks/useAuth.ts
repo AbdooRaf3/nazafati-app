@@ -32,7 +32,7 @@ export const useAuth = (): AuthState & {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
       
-      let userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         
       if (userDoc.exists()) {
         const userData = userDoc.data() as Omit<User, 'uid'>;
@@ -133,7 +133,7 @@ export const useAuth = (): AuthState & {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser && !firebaseUser.isAnonymous) {
         try {
-          let userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           
           if (userDoc.exists()) {
             const userData = userDoc.data() as Omit<User, 'uid'>;
