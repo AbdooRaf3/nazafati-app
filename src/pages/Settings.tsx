@@ -3,6 +3,7 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { useFirestoreCRUD } from '../hooks/useFirestoreCRUD';
 import { SalaryRules } from '../types';
 import { Button } from '../components/ui/Button';
+import { ErrorReports } from '../components/ErrorReports';
 
 const SETTINGS_DOC_ID = 'salaryRules'; // Document ID for salary rules
 
@@ -10,6 +11,7 @@ export const Settings: React.FC = () => {
   const { getDocument, updateDocument, loading, error } = useFirestoreCRUD<SalaryRules>('salaryRules');
   const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<SalaryRules>();
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'settings' | 'errors'>('settings');
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -48,7 +50,36 @@ export const Settings: React.FC = () => {
     <div className="p-4 sm:p-6">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">إعدادات النظام</h1>
       
-      <div className="max-w-2xl">
+      {/* Tabs */}
+      <div className="mb-6">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8 space-x-reverse">
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'settings'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              إعدادات الرواتب
+            </button>
+            <button
+              onClick={() => setActiveTab('errors')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'errors'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              تقارير الأخطاء
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      {activeTab === 'settings' && (
+        <div className="max-w-2xl">
         <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="space-y-6">
             <div>
@@ -136,7 +167,12 @@ export const Settings: React.FC = () => {
             </Button>
           </div>
         </form>
-      </div>
+        </div>
+      )}
+
+      {activeTab === 'errors' && (
+        <ErrorReports />
+      )}
     </div>
   );
 };

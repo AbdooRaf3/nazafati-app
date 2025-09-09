@@ -1,6 +1,7 @@
 import { FirestoreService } from './firestoreService';
 import { Firestore } from 'firebase/firestore';
 import { calculateTotalSalary } from '../utils/calcSalary';
+import { errorHandler } from '../utils/errorHandler';
 
 export interface PayrollRow {
   jobNumber: string;
@@ -99,7 +100,10 @@ export class PayrollService {
         rows
       };
     } catch (error) {
-      console.error('خطأ في توليد بيانات الرواتب:', error);
+      errorHandler.handleError(error, 'generatePayrollData', {
+        action: 'generatePayrollData',
+        additionalData: { monthKey, regionId }
+      });
       throw new Error('فشل في توليد بيانات الرواتب');
     }
   }
@@ -118,7 +122,10 @@ export class PayrollService {
         }
       }
     } catch (error) {
-      console.error('خطأ في الموافقة على الإدخالات:', error);
+      errorHandler.handleError(error, 'approveMonthlyEntries', {
+        action: 'approveMonthlyEntries',
+        additionalData: { monthKey, regionId }
+      });
       throw new Error('فشل في الموافقة على الإدخالات');
     }
   }
@@ -165,7 +172,10 @@ export class PayrollService {
         regionBreakdown
       };
     } catch (error) {
-      console.error('خطأ في جلب إحصائيات الرواتب:', error);
+      errorHandler.handleError(error, 'getPayrollStatistics', {
+        action: 'getPayrollStatistics',
+        additionalData: { monthKey }
+      });
       throw new Error('فشل في جلب إحصائيات الرواتب');
     }
   }

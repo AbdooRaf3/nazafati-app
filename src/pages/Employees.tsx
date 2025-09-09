@@ -6,21 +6,25 @@ import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { Table } from '../components/ui/Table';
 import { formatArabicDate } from '../utils/formatDate';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 export const Employees: React.FC = () => {
   const { getCollection, addDocument, updateDocument, deleteDocument, loading, error } = useFirestoreCRUD<Employee>('employees');
+  const { error: errorHandlerError, clearError, executeWithErrorHandling } = useErrorHandler();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
   const fetchEmployees = useCallback(async () => {
-    try {
-      const data = await getCollection();
-      setEmployees(data);
-    } catch (err) {
-      console.error(err);
-    }
-  }, [getCollection]);
+    await executeWithErrorHandling(
+      async () => {
+        const data = await getCollection();
+        setEmployees(data);
+      },
+      'fetchEmployees',
+      { action: 'fetchEmployees' }
+    );
+  }, [getCollection, executeWithErrorHandling]);
 
   useEffect(() => {
     fetchEmployees();
@@ -38,27 +42,34 @@ export const Employees: React.FC = () => {
 
   const handleDeleteEmployee = async (id: string) => {
     if (window.confirm('هل أنت متأكد من رغبتك في حذف هذا الموظف؟')) {
-      try {
-        await deleteDocument(id);
-        fetchEmployees();
-      } catch (err) {
-        console.error(err);
-      }
+      await executeWithErrorHandling(
+        async () => {
+          await deleteDocument(id);
+          fetchEmployees();
+        },
+        'deleteEmployee',
+        { action: 'deleteEmployee', additionalData: { employeeId: id } }
+      );
     }
   };
 
   const handleFormSubmit = async (data: Omit<Employee, 'id'>) => {
-    try {
-      if (editingEmployee) {
-        await updateDocument(editingEmployee.id!, data);
-      } else {
-        await addDocument(data);
+    await executeWithErrorHandling(
+      async () => {
+        if (editingEmployee) {
+          await updateDocument(editingEmployee.id!, data);
+        } else {
+          await addDocument(data);
+        }
+        fetchEmployees();
+        setIsModalOpen(false);
+      },
+      'handleFormSubmit',
+      { 
+        action: editingEmployee ? 'updateEmployee' : 'createEmployee',
+        additionalData: { employeeId: editingEmployee?.id }
       }
-      fetchEmployees();
-      setIsModalOpen(false);
-    } catch (err) {
-      console.error(err);
-    }
+    );
   };
 
   const columns = [
@@ -98,9 +109,19 @@ export const Employees: React.FC = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
         </div>
       )}
-      {error && (
+      {(error || errorHandlerError) && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
-          <p className="text-red-600">{error.message}</p>
+          <div className="flex justify-between items-start">
+            <p className="text-red-600">{error?.message || errorHandlerError}</p>
+            <Button 
+              onClick={clearError} 
+              variant="outline" 
+              size="sm"
+              className="text-red-600 border-red-300 hover:bg-red-50"
+            >
+              إغلاق
+            </Button>
+          </div>
         </div>
       )}
 

@@ -11,6 +11,7 @@ import {
   Firestore
 } from 'firebase/firestore';
 import { User } from '../types';
+import { errorHandler } from '../utils/errorHandler';
 
 export const FirestoreService = {
   // Existing helpers
@@ -31,7 +32,10 @@ export const FirestoreService = {
         return null;
       }
     } catch (error) {
-      console.error('Error fetching user by email:', error);
+      errorHandler.handleFirestoreError(error, 'getUserByEmail', {
+        action: 'getUserByEmail',
+        additionalData: { email }
+      });
       throw error;
     }
   },
@@ -50,7 +54,10 @@ export const FirestoreService = {
         return null;
       }
     } catch (error) {
-      console.error('Error fetching user by ID:', error);
+      errorHandler.handleFirestoreError(error, 'getUserById', {
+        action: 'getUserById',
+        additionalData: { uid }
+      });
       throw error;
     }
   },
@@ -61,7 +68,9 @@ export const FirestoreService = {
       const querySnapshot = await getDocs(collection(db, 'employees'));
       return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
     } catch (error) {
-      console.error('Error fetching employees:', error);
+      errorHandler.handleFirestoreError(error, 'getAllEmployees', {
+        action: 'getAllEmployees'
+      });
       return [];
     }
   },
@@ -75,7 +84,10 @@ export const FirestoreService = {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
     } catch (error) {
-      console.error('Error fetching monthly entries:', error);
+      errorHandler.handleFirestoreError(error, 'getMonthlyEntries', {
+        action: 'getMonthlyEntries',
+        additionalData: { monthKey, regionId }
+      });
       return [];
     }
   },
@@ -94,7 +106,9 @@ export const FirestoreService = {
         rounding: 'round'
       } as const;
     } catch (error) {
-      console.error('Error fetching salary rules:', error);
+      errorHandler.handleFirestoreError(error, 'getSalaryRules', {
+        action: 'getSalaryRules'
+      });
       return {
         daysInMonthReference: 30,
         overtimeFactor: 1.5,
@@ -113,7 +127,10 @@ export const FirestoreService = {
       }
       return null;
     } catch (error) {
-      console.error('Error fetching user:', error);
+      errorHandler.handleFirestoreError(error, 'getUser', {
+        action: 'getUser',
+        additionalData: { id }
+      });
       return null;
     }
   },
@@ -123,7 +140,10 @@ export const FirestoreService = {
       const docRef = doc(db, collection, id);
       await updateDoc(docRef, data);
     } catch (error) {
-      console.error('Error updating document:', error);
+      errorHandler.handleFirestoreError(error, 'updateDocument', {
+        action: 'updateDocument',
+        additionalData: { collection, id }
+      });
       throw error;
     }
   }

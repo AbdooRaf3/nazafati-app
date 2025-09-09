@@ -11,6 +11,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { useFirebase } from '../contexts/FirebaseContext';
 import { User, AuthState } from '../types';
 import { FirestoreService } from '../services/firestoreService';
+import { errorHandler } from '../utils/errorHandler';
 
 export const useAuth = (): AuthState & {
   signIn: (email: string, password: string) => Promise<void>;
@@ -72,10 +73,7 @@ export const useAuth = (): AuthState & {
         }
       }
     } catch (err: any) {
-      const errorMessage = err.code === 'auth/user-not-found' ? 'User not found' :
-                        err.code === 'auth/wrong-password' ? 'Incorrect password' :
-                        err.code === 'auth/invalid-email' ? 'Invalid email' :
-                        err.message || 'Error signing in';
+      const errorMessage = errorHandler.handleAuthError(err, 'signIn');
       setError(errorMessage);
       throw err;
     } finally {
@@ -90,8 +88,8 @@ export const useAuth = (): AuthState & {
       await firebaseSignOut(auth);
       setUser(null);
     } catch (err: any) {
+      errorHandler.handleError(err, 'signOut', { action: 'signOut' });
       setError('Error signing out');
-      console.error('Error signing out:', err);
     }
   }, [auth]);
 
@@ -117,8 +115,8 @@ export const useAuth = (): AuthState & {
       
       setUser(tempUser);
     } catch (err: any) {
+      errorHandler.handleError(err, 'signInAnonymous', { action: 'signInAnonymous' });
       setError('Error with anonymous sign-in');
-      console.error('Error with anonymous sign-in:', err);
     } finally {
       setLoading(false);
     }
