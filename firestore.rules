@@ -22,10 +22,10 @@ service cloud.firestore {
         getUserData().role == 'supervisor';
     }
     
-    function isEntryForOwnRegion(entryData) {
+    function isEntryForOwnRegionFromRequest() {
       return isSupervisor() && 
-        exists(/databases/$(database)/documents/employees/$(entryData.employeeId)) &&
-        get(/databases/$(database)/documents/employees/$(entryData.employeeId)).data.regionId == getUserData().regionId;
+        exists(/databases/$(database)/documents/employees/$(request.resource.data.employeeId)) &&
+        get(/databases/$(database)/documents/employees/$(request.resource.data.employeeId)).data.regionId == getUserData().regionId;
     }
     
     // Users collection rules
@@ -50,7 +50,7 @@ service cloud.firestore {
     }
     
     // Monthly entries collection rules
-    match /monthlyEntries/{entryId} {
+    match /monthly-entries/{entryId} {
       // Allow read access for all authenticated users during development
       allow read: if isAuthenticated();
       
@@ -59,7 +59,7 @@ service cloud.firestore {
       
       // Supervisors can create/update/delete entries for employees in their region
       allow create, update, delete: if isSupervisor() && 
-        isEntryForOwnRegion(request.resource.data);
+        isEntryForOwnRegionFromRequest();
     }
     
     // Salary rules collection
