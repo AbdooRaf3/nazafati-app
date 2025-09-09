@@ -18,9 +18,9 @@ export const Input: React.FC<InputProps> = ({
   const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
   
   const inputClasses = classNames(
-    'block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+    'block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors',
     {
-      'border-gray-300': !error,
+      'border-gray-300 focus:border-primary-500': !error,
       'border-red-300 focus:ring-red-500 focus:border-red-500': error
     },
     className

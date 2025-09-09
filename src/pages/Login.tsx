@@ -50,25 +50,37 @@ export const Login: React.FC = () => {
           </p>
         </div>
 
-        <Card>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <Input
-              label="البريد الإلكتروني"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="أدخل بريدك الإلكتروني"
-            />
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                البريد الإلكتروني
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="أدخل بريدك الإلكتروني"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
 
-            <Input
-              label="كلمة المرور"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="أدخل كلمة المرور"
-            />
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                كلمة المرور
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="أدخل كلمة المرور"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-md p-3">
@@ -107,7 +119,7 @@ export const Login: React.FC = () => {
               </Button>
             </div>
           </div>
-        </Card>
+        </div>
 
         <div className="text-center">
           <p className="text-xs text-gray-500">
