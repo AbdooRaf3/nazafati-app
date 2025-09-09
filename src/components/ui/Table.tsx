@@ -49,7 +49,7 @@ export function Table<T>({
               <th
                 key={column.key || column.accessor || index}
                 className={classNames(
-                  'px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider',
+                  'px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider',
                   column.className
                 )}
               >
@@ -60,12 +60,12 @@ export function Table<T>({
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {data.map((item, index) => (
-            <tr key={index} className="hover:bg-gray-50">
+            <tr key={index} className="hover:bg-gray-50 transition-colors">
               {columns.map((column, colIndex) => (
                 <td
                   key={column.key || column.accessor || colIndex}
                   className={classNames(
-                    'px-6 py-4 whitespace-nowrap text-sm text-gray-900',
+                    'px-3 sm:px-6 py-4 text-sm text-gray-900',
                     column.className
                   )}
                 >

@@ -77,9 +77,9 @@ export const Sidebar: React.FC = () => {
   );
 
   return (
-    <div className="bg-white shadow-lg w-64 min-h-screen">
+    <div className="bg-white shadow-lg w-64 min-h-screen flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-gray-200 flex-shrink-0">
         <h1 className="text-xl font-bold text-gray-900">نظام نظافتي</h1>
         <p className="text-sm text-gray-500 mt-1">
           {ROLE_LABELS[user.role as keyof typeof ROLE_LABELS]}
@@ -87,7 +87,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="p-4">
+      <nav className="p-4 flex-1 overflow-y-auto">
         <ul className="space-y-2">
           {filteredMenuItems.map((item) => {
             const isActive = location.pathname === item.path;
@@ -114,16 +114,16 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* User Info */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-gray-200 flex-shrink-0">
         <div className="flex items-center">
           <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
             <span className="text-primary-600 font-medium text-sm">
               {user.name ? user.name.charAt(0) : '?'}
             </span>
           </div>
-          <div className="mr-3 flex-1">
-            <p className="text-sm font-medium text-gray-900">{user.name || 'مستخدم'}</p>
-            <p className="text-xs text-gray-500">{user.email || 'لا يوجد بريد إلكتروني'}</p>
+          <div className="mr-3 flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">{user.name || 'مستخدم'}</p>
+            <p className="text-xs text-gray-500 truncate">{user.email || 'لا يوجد بريد إلكتروني'}</p>
           </div>
         </div>
       </div>

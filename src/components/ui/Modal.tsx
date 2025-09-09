@@ -72,20 +72,20 @@ export const Modal: React.FC<ModalProps> = ({
         
         {/* Modal */}
         <div className={classNames(
-          'relative bg-white rounded-lg shadow-xl w-full',
+          'relative bg-white rounded-lg shadow-xl w-full max-h-[90vh] overflow-hidden',
           sizeClasses[size]
         )}>
           {/* Header */}
           {title && (
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
               <h3 className="text-lg font-medium text-gray-900">{title}</h3>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
                 aria-label="إغلاق"
                 title="إغلاق"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -93,7 +93,7 @@ export const Modal: React.FC<ModalProps> = ({
           )}
           
           {/* Content */}
-          <div className="p-6">
+          <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
             {children}
           </div>
         </div>

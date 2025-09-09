@@ -85,16 +85,30 @@ export const Employees: React.FC = () => {
   ];
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">إدارة الموظفين</h1>
-        <Button onClick={handleAddEmployee}>إضافة موظف جديد</Button>
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
+        <h1 className="text-2xl font-bold text-gray-900">إدارة الموظفين</h1>
+        <Button onClick={handleAddEmployee} className="w-full sm:w-auto">
+          إضافة موظف جديد
+        </Button>
       </div>
 
-      {loading && <p>جاري التحميل...</p>}
-      {error && <p className="text-red-500">{error.message}</p>}
+      {loading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+      )}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+          <p className="text-red-600">{error.message}</p>
+        </div>
+      )}
 
-      {!loading && !error && <Table columns={columns} data={employees} />}
+      {!loading && !error && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <Table columns={columns} data={employees} />
+        </div>
+      )}
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingEmployee ? 'تعديل موظف' : 'إضافة موظف جديد'}>
         <EmployeeForm

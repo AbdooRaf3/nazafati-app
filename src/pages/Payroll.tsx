@@ -58,53 +58,68 @@ export const Payroll: React.FC = () => {
   ];
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">كشوف الرواتب</h1>
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
+        <h1 className="text-2xl font-bold text-gray-900">كشوف الرواتب</h1>
       </div>
 
-      <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-        <div className="flex items-center space-x-4">
-          <input
-            type="month"
-            value={currentMonth}
-            onChange={(e) => setCurrentMonth(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-          />
-          <Button onClick={handleGeneratePayroll} disabled={loading}>
-            {loading ? 'جاري التوليد...' : 'توليد كشف الرواتب'}
-          </Button>
-          {payrollData && (
-            <Button onClick={handleApproveEntries} disabled={loading} variant="success">
-              {loading ? 'جاري الموافقة...' : 'الموافقة على الكل'}
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="payroll-month" className="text-sm font-medium text-gray-700">الشهر:</label>
+            <input
+              id="payroll-month"
+              type="month"
+              value={currentMonth}
+              onChange={(e) => setCurrentMonth(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button onClick={handleGeneratePayroll} disabled={loading} className="w-full sm:w-auto">
+              {loading ? 'جاري التوليد...' : 'توليد كشف الرواتب'}
             </Button>
-          )}
+            {payrollData && (
+              <Button onClick={handleApproveEntries} disabled={loading} variant="success" className="w-full sm:w-auto">
+                {loading ? 'جاري الموافقة...' : 'الموافقة على الكل'}
+              </Button>
+            )}
+          </div>
         </div>
-        {error && <p className="text-red-500 mt-2">{error}</p>}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 mt-4">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
       </div>
 
       {payrollData && (
-        <div className="bg-white p-4 rounded-lg shadow-md">
-            <h2 className="text-xl font-bold mb-4">ملخص الرواتب لشهر {currentMonth}</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-center">
-                <div className="p-4 bg-gray-100 rounded-lg">
-                    <p className="text-sm text-gray-600">إجمالي الموظفين</p>
-                    <p className="text-2xl font-bold">{payrollData.totalEmployees}</p>
-                </div>
-                <div className="p-4 bg-gray-100 rounded-lg">
-                    <p className="text-sm text-gray-600">إجمالي أيام العمل</p>
-                    <p className="text-2xl font-bold">{payrollData.totalDaysWorked}</p>
-                </div>
-                <div className="p-4 bg-gray-100 rounded-lg">
-                    <p className="text-sm text-gray-600">إجمالي الرواتب الأساسية</p>
-                    <p className="text-2xl font-bold">{payrollData.totalBaseSalary.toFixed(2)}</p>
-                </div>
-                <div className="p-4 bg-primary-100 rounded-lg">
-                    <p className="text-sm text-primary-800">إجمالي الرواتب المحسوبة</p>
-                    <p className="text-2xl font-bold text-primary-600">{payrollData.totalCalculatedSalary.toFixed(2)}</p>
-                </div>
+        <div className="space-y-6">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">ملخص الرواتب لشهر {currentMonth}</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 bg-gray-50 rounded-lg text-center">
+                <p className="text-sm text-gray-600 mb-1">إجمالي الموظفين</p>
+                <p className="text-2xl font-bold text-gray-900">{payrollData.totalEmployees}</p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded-lg text-center">
+                <p className="text-sm text-gray-600 mb-1">إجمالي أيام العمل</p>
+                <p className="text-2xl font-bold text-gray-900">{payrollData.totalDaysWorked}</p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded-lg text-center">
+                <p className="text-sm text-gray-600 mb-1">إجمالي الرواتب الأساسية</p>
+                <p className="text-2xl font-bold text-gray-900">{payrollData.totalBaseSalary.toFixed(2)} ريال</p>
+              </div>
+              <div className="p-4 bg-primary-50 rounded-lg text-center">
+                <p className="text-sm text-primary-700 mb-1">إجمالي الرواتب المحسوبة</p>
+                <p className="text-2xl font-bold text-primary-600">{payrollData.totalCalculatedSalary.toFixed(2)} ريال</p>
+              </div>
             </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <Table columns={payrollColumns} data={payrollData.rows} />
+          </div>
         </div>
       )}
     </div>
