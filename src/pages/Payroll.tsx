@@ -1,9 +1,11 @@
 import React, { useState, useCallback } from 'react';
+import { useFirebase } from '../contexts/FirebaseContext';
 import { PayrollService, PayrollSummary } from '../services/payrollService';
 import { Button } from '../components/ui/Button';
 import { Table } from '../components/ui/Table';
 
 export const Payroll: React.FC = () => {
+  const { db } = useFirebase();
   const [payrollData, setPayrollData] = useState<PayrollSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +18,7 @@ export const Payroll: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await PayrollService.generatePayrollData(currentMonth);
+      const data = await PayrollService.generatePayrollData(db!, currentMonth);
       setPayrollData(data);
     } catch (err: any) {
       setError(err.message || 'فشل في توليد الرواتب');
@@ -32,7 +34,7 @@ export const Payroll: React.FC = () => {
     if (window.confirm('هل أنت متأكد من رغبتك في الموافقة على جميع الإدخالات لهذا الشهر؟')) {
         try {
             setLoading(true);
-            await PayrollService.approveMonthlyEntries(currentMonth);
+            await PayrollService.approveMonthlyEntries(db!, currentMonth);
             handleGeneratePayroll(); // Refresh data after approval
             alert('تمت الموافقة بنجاح');
         } catch(err: any) {

@@ -5,7 +5,7 @@ import { EmployeeForm } from '../components/forms/EmployeeForm';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { Table } from '../components/ui/Table';
-import { formatArabicDate as formatDate } from '../utils/formatDate';
+import { formatArabicDate } from '../utils/formatDate';
 
 export const Employees: React.FC = () => {
   const { getCollection, addDocument, updateDocument, deleteDocument, loading, error } = useFirestoreCRUD<Employee>('employees');
@@ -70,7 +70,7 @@ export const Employees: React.FC = () => {
     { 
       header: 'تاريخ الإنشاء', 
       accessor: 'createdAt', 
-      render: (value: any) => formatDate(value) 
+      render: (value: any) => formatArabicDate(value) 
     },
     {
       header: 'إجراءات',

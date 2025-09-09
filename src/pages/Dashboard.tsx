@@ -5,6 +5,7 @@ import { useRegionAccess } from '../hooks/useRegionAccess';
 import { PageContainer } from '../components/Layout/PageContainer';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { useFirebase } from '../contexts/FirebaseContext';
 import { FirestoreService } from '../services/firestoreService';
 import { PayrollService } from '../services/payrollService';
 import { formatArabicMonth, getCurrentMonthKey } from '../utils/formatDate';
@@ -18,7 +19,7 @@ interface DashboardStats {
 }
 
 export const Dashboard: React.FC = () => {
-
+  const { db } = useFirebase();
   const { user, loading: authLoading } = useAuth();
   const { canViewAllRegions, canGeneratePayroll } = useRegionAccess();
   const [stats, setStats] = useState<DashboardStats>({
@@ -42,8 +43,8 @@ export const Dashboard: React.FC = () => {
 
         // جلب الإحصائيات
         const [employees, payrollStats] = await Promise.all([
-          FirestoreService.getAllEmployees(),
-          PayrollService.getPayrollStatistics(currentMonth)
+          db ? FirestoreService.getAllEmployees(db) : Promise.resolve([]),
+          PayrollService.getPayrollStatistics(db!, currentMonth)
         ]);
 
         setStats({

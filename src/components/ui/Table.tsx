@@ -45,9 +45,9 @@ export function Table<T>({
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            {columns.map((column) => (
+            {columns.map((column, index) => (
               <th
-                key={(column.key || column.accessor) as string}
+                key={column.key || column.accessor || index}
                 className={classNames(
                   'px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider',
                   column.className
@@ -61,9 +61,9 @@ export function Table<T>({
         <tbody className="bg-white divide-y divide-gray-200">
           {data.map((item, index) => (
             <tr key={index} className="hover:bg-gray-50">
-              {columns.map((column) => (
+              {columns.map((column, colIndex) => (
                 <td
-                  key={(column.key || column.accessor) as string}
+                  key={column.key || column.accessor || colIndex}
                   className={classNames(
                     'px-6 py-4 whitespace-nowrap text-sm text-gray-900',
                     column.className

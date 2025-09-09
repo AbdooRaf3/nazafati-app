@@ -1,5 +1,5 @@
 import { FirestoreService } from './firestoreService';
-
+import { Firestore } from 'firebase/firestore';
 import { calculateTotalSalary } from '../utils/calcSalary';
 
 export interface PayrollRow {
@@ -26,22 +26,22 @@ export interface PayrollSummary {
 }
 
 export class PayrollService {
-  static async generatePayrollData(monthKey: string, regionId?: string): Promise<PayrollSummary> {
+  static async generatePayrollData(db: Firestore, monthKey: string, regionId?: string): Promise<PayrollSummary> {
     try {
       // جلب الإدخالات الشهرية
-      const entries = await FirestoreService.getMonthlyEntries(monthKey, regionId);
+      const entries = await FirestoreService.getMonthlyEntries(db, monthKey, regionId);
       
       if (entries.length === 0) {
         throw new Error('لا توجد بيانات للشهر المحدد');
       }
 
       // جلب قواعد الرواتب
-      const salaryRules = await FirestoreService.getSalaryRules();
+      const salaryRules = await FirestoreService.getSalaryRules(db);
       
       // جلب بيانات الموظفين
       const employeeIds = [...new Set(entries.map(entry => entry.employeeId))];
       const employees = await Promise.all(
-        employeeIds.map(id => FirestoreService.getUser(id))
+        employeeIds.map(id => FirestoreService.getUser(db, id))
       );
       
       // إنشاء صفوف الرواتب
@@ -104,14 +104,14 @@ export class PayrollService {
     }
   }
 
-  static async approveMonthlyEntries(monthKey: string, regionId?: string): Promise<void> {
+  static async approveMonthlyEntries(db: Firestore, monthKey: string, regionId?: string): Promise<void> {
     try {
-      const entries = await FirestoreService.getMonthlyEntries(monthKey, regionId);
+      const entries = await FirestoreService.getMonthlyEntries(db, monthKey, regionId);
       
       // تحديث حالة جميع الإدخالات إلى 'approved'
       for (const entry of entries) {
         if (entry.status !== 'approved') {
-          await FirestoreService.updateDocument('monthlyEntries', entry.id, {
+          await FirestoreService.updateDocument(db, 'monthly-entries', entry.id, {
             status: 'approved',
             updatedAt: new Date()
           });
@@ -123,7 +123,7 @@ export class PayrollService {
     }
   }
 
-  static async getPayrollStatistics(monthKey: string): Promise<{
+  static async getPayrollStatistics(db: Firestore, monthKey: string): Promise<{
     totalRegions: number;
     totalEmployees: number;
     totalSalary: number;
@@ -135,7 +135,7 @@ export class PayrollService {
     }>;
   }> {
     try {
-      const entries = await FirestoreService.getMonthlyEntries(monthKey);
+      const entries = await FirestoreService.getMonthlyEntries(db, monthKey);
       
       // تجميع البيانات حسب المنطقة
       const regionData = new Map<string, { count: number; salary: number }>();

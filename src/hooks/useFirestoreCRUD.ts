@@ -104,9 +104,18 @@ export const useFirestoreCRUD = <T>(collectionName: string) => {
 
   // Backward/compat helpers expected by pages
   const getCollection = useCallback(async () => {
-    await fetchData();
-    return state.data ?? [];
-  }, [fetchData, state.data]);
+    if (!db) return [];
+    setState(prevState => ({ ...prevState, loading: true, error: null }));
+    try {
+      const querySnapshot = await getDocs(collection(db, collectionName));
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+      setState(prevState => ({ ...prevState, loading: false, data }));
+      return data;
+    } catch (error) {
+      setState(prevState => ({ ...prevState, loading: false, error: error as FirestoreError }));
+      return [];
+    }
+  }, [db, collectionName]);
 
   const addDocument = useCallback(async (payload: Omit<T, 'id'>) => {
     if (!db) return '';

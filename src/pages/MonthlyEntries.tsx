@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useFirebase } from '../contexts/FirebaseContext';
 import { useFirestoreCRUD } from '../hooks/useFirestoreCRUD';
 import { useAuth } from '../hooks/useAuth';
 import { Employee, MonthlyEntry, SalaryRules } from '../types';
@@ -9,6 +10,7 @@ import { calculateTotalSalary } from '../utils/calcSalary';
 const SETTINGS_DOC_ID = 'salaryRules';
 
 export const MonthlyEntries: React.FC = () => {
+  const { db } = useFirebase();
   const { user } = useAuth();
   const { getCollection: getEmployees, loading: loadingEmployees } = useFirestoreCRUD<Employee>('employees');
   const { 
@@ -17,7 +19,7 @@ export const MonthlyEntries: React.FC = () => {
     updateDocument,
     loading: loadingEntries 
   } = useFirestoreCRUD<MonthlyEntry>('monthly-entries');
-  const { getDocument: getSettings } = useFirestoreCRUD<SalaryRules>('settings');
+  const { getDocument: getSettings } = useFirestoreCRUD<SalaryRules>('salaryRules');
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [monthlyEntries, setMonthlyEntries] = useState<Record<string, MonthlyEntry>>({});

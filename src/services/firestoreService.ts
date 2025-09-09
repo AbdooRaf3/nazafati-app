@@ -7,6 +7,7 @@ import {
   limit,
   doc,
   getDoc,
+  updateDoc,
   Firestore
 } from 'firebase/firestore';
 import { User } from '../types';
@@ -55,35 +56,75 @@ export const FirestoreService = {
   },
 
   // New helpers required by other modules/pages
-  async getAllEmployees() {
-    // Placeholder: fetch employees from 'employees' collection without explicit db param
-    // The app generally uses hooks with context for db, but this service was referenced statically.
-    // To keep build passing, return empty array; wiring to actual db can be added later if needed.
-    return [] as User[];
+  async getAllEmployees(db: Firestore) {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'employees'));
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      return [];
+    }
   },
 
-  async getMonthlyEntries(_monthKey: string, _regionId?: string) {
-    // Return empty list for now to satisfy types and build
-    return [] as any[];
+  async getMonthlyEntries(db: Firestore, monthKey: string, regionId?: string) {
+    try {
+      let q = query(collection(db, 'monthly-entries'), where('monthKey', '==', monthKey));
+      if (regionId) {
+        q = query(q, where('regionId', '==', regionId));
+      }
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+    } catch (error) {
+      console.error('Error fetching monthly entries:', error);
+      return [];
+    }
   },
 
-  async getSalaryRules() {
-    // Return default salary rules to satisfy build-time types
-    return {
-      daysInMonthReference: 30,
-      overtimeFactor: 1.5,
-      weekendFactor: 2,
-      rounding: 'round'
-    } as const;
+  async getSalaryRules(db: Firestore) {
+    try {
+      const docRef = doc(db, 'salaryRules', 'salaryRules');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return docSnap.data() as any;
+      }
+      return {
+        daysInMonthReference: 30,
+        overtimeFactor: 1.5,
+        weekendFactor: 2,
+        rounding: 'round'
+      } as const;
+    } catch (error) {
+      console.error('Error fetching salary rules:', error);
+      return {
+        daysInMonthReference: 30,
+        overtimeFactor: 1.5,
+        weekendFactor: 2,
+        rounding: 'round'
+      } as const;
+    }
   },
 
-  async getUser(_id: string) {
-    // Return minimal shape for build
-    return { uid: _id, name: 'موظف', email: '', role: 'finance', createdAt: new Date(), updatedAt: new Date() } as User;
+  async getUser(db: Firestore, id: string) {
+    try {
+      const docRef = doc(db, 'users', id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { uid: id, ...docSnap.data() } as User;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      return null;
+    }
   },
 
-  async updateDocument(_collection: string, _id: string, _data: any) {
-    // No-op placeholder for build
-    return;
+  async updateDocument(db: Firestore, collection: string, id: string, data: any) {
+    try {
+      const docRef = doc(db, collection, id);
+      await updateDoc(docRef, data);
+    } catch (error) {
+      console.error('Error updating document:', error);
+      throw error;
+    }
   }
 };
