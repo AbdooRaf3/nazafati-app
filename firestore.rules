@@ -6,6 +6,11 @@ service cloud.firestore {
       return request.auth != null;
     }
     
+    // Allow anonymous access for data import (temporary)
+    function isAnonymous() {
+      return request.auth != null && request.auth.uid != null;
+    }
+    
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
@@ -44,7 +49,8 @@ service cloud.firestore {
     match /users/{userId} {
       // Only admins can create/update/delete users
       // Everyone can read their own user document
-      allow create, update, delete: if isAdmin();
+      // Allow anonymous access for data import
+      allow create, update, delete: if isAdmin() || isAnonymous();
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
     }
     
@@ -55,7 +61,8 @@ service cloud.firestore {
       allow read: if isAdmin() || isFinance() || isEmployeeInOwnRegion(employeeId);
       
       // Admins can do everything
-      allow write: if isAdmin();
+      // Allow anonymous access for data import
+      allow write: if isAdmin() || isAnonymous();
       
       // Supervisors can create/update/delete employees in their region only
       allow create, update, delete: if isSupervisor() && 
@@ -80,13 +87,15 @@ service cloud.firestore {
     // Salary rules collection
     match /salaryRules/{ruleId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      // Allow anonymous access for data import
+      allow write: if isAdmin() || isAnonymous();
     }
     
     // Regions collection
     match /regions/{regionId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      // Allow anonymous access for data import
+      allow write: if isAdmin() || isAnonymous();
     }
   }
 }

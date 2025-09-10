@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import * as fs from 'fs';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { 
@@ -40,6 +41,12 @@ interface Employee {
   baseSalary: number;
   regionId: string;
   status: 'active' | 'inactive';
+  // حقول العمل الإضافي
+  daysInMonthReference: number; // عدد أيام العمل المرجعية في الشهر
+  overtimeAfterWork: number; // عدد أيام العمل الإضافي بعد الدوام
+  fridaysAndHolidays: number; // عدد أيام العمل في الجمع والعطل الرسمية
+  holidays: number; // عدد أيام العمل خلال الأعياد
+  supervisor: string; // اسم المراقب
   createdAt: any;
   updatedAt: any;
 }
@@ -66,7 +73,12 @@ interface Region {
 function readExcelFile(filePath: string): ExcelRow[] {
   try {
     console.log('قراءة ملف Excel...');
-    const workbook = XLSX.readFile(filePath);
+    
+    // قراءة الملف باستخدام fs
+    const fileBuffer = fs.readFileSync(filePath);
+    
+    // قراءة ملف Excel باستخدام XLSX.read
+    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet) as ExcelRow[];
@@ -129,8 +141,15 @@ function convertToEmployees(data: ExcelRow[]): Employee[] {
     // البحث عن أسماء الأعمدة المختلفة
     const jobNumber = findColumnValue(row, ['رقم_الوظيفة', 'jobNumber', 'رقم الوظيفة', 'الرقم الوظيفي', 'رقم الوظيفي']);
     const name = findColumnValue(row, ['اسم_الموظف', 'name', 'اسم الموظف', 'الاسم', 'اسم العامل']);
-    const regionName = findColumnValue(row, ['المنطقة', 'region', 'regionName', 'المنطقة المخصصة']);
+    const regionName = findColumnValue(row, ['المنطقة', 'region', 'regionName', 'المنطقة المخصصة', 'supervisor']);
     const salary = findColumnValue(row, ['الراتب_الاساسي', 'baseSalary', 'الراتب الأساسي', 'الراتب', 'الراتب الشهري']);
+    
+    // حقول العمل الإضافي
+    const daysInMonthReference = findColumnValue(row, ['daysInMonthReference', 'عدد_ايام_العمل', 'عدد أيام العمل']);
+    const overtimeAfterWork = findColumnValue(row, ['overtimeAfterWork', 'الإضافي_بعد_الدوام', 'الإضافي بعد الدوام']);
+    const fridaysAndHolidays = findColumnValue(row, ['fridaysAndHolidays', 'الجمع_والعطل', 'الجمع والعطل']);
+    const holidays = findColumnValue(row, ['holidays', 'الأعياد', 'العطل']);
+    const supervisor = findColumnValue(row, ['supervisor', 'المراقب', 'المراقب والمنطقة']);
     
     if (!jobNumber || !name) {
       console.warn('صف بدون رقم وظيفة أو اسم - سيتم تجاهله:', row);
@@ -144,9 +163,13 @@ function convertToEmployees(data: ExcelRow[]): Employee[] {
     }
     seenJobNumbers.add(jobNumber);
     
-    // تحديد المنطقة
+    // تحديد المنطقة بناءً على regionId من البيانات أو توزيع عشوائي
     let regionId = 'region-1'; // افتراضي
-    if (regionName) {
+    const regionIdFromData = findColumnValue(row, ['regionId', 'المنطقة_المعرف', 'معرف المنطقة']);
+    
+    if (regionIdFromData) {
+      regionId = regionIdFromData;
+    } else if (regionName) {
       if (regionName.includes('شمال') || regionName.includes('north') || regionName.includes('1')) {
         regionId = 'region-1';
       } else if (regionName.includes('جنوب') || regionName.includes('south') || regionName.includes('2')) {
@@ -155,11 +178,26 @@ function convertToEmployees(data: ExcelRow[]): Employee[] {
         regionId = 'region-3';
       } else if (regionName.includes('غرب') || regionName.includes('west') || regionName.includes('4')) {
         regionId = 'region-4';
+      } else {
+        // توزيع عشوائي على المناطق
+        const regions = ['region-1', 'region-2', 'region-3', 'region-4'];
+        regionId = regions[Math.floor(Math.random() * regions.length)];
       }
+    } else {
+      // توزيع عشوائي على المناطق
+      const regions = ['region-1', 'region-2', 'region-3', 'region-4'];
+      regionId = regions[Math.floor(Math.random() * regions.length)];
     }
     
     // حساب الراتب الأساسي
     const baseSalary = salary ? Number(salary) : 3000; // افتراضي 3000 دينار
+    
+    // تحويل قيم العمل الإضافي إلى أرقام
+    const daysInMonthRef = daysInMonthReference ? Number(daysInMonthReference) : 30;
+    const overtimeAfter = overtimeAfterWork ? Number(overtimeAfterWork) : 0;
+    const fridaysHolidays = fridaysAndHolidays ? Number(fridaysAndHolidays) : 0;
+    const holidaysWork = holidays ? Number(holidays) : 0;
+    const supervisorName = supervisor ? supervisor.toString() : '';
     
     const employee: Employee = {
       jobNumber: jobNumber.toString(),
@@ -167,6 +205,12 @@ function convertToEmployees(data: ExcelRow[]): Employee[] {
       baseSalary,
       regionId,
       status: 'active',
+      // حقول العمل الإضافي
+      daysInMonthReference: daysInMonthRef,
+      overtimeAfterWork: overtimeAfter,
+      fridaysAndHolidays: fridaysHolidays,
+      holidays: holidaysWork,
+      supervisor: supervisorName,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
@@ -186,6 +230,30 @@ function findColumnValue(row: ExcelRow, possibleKeys: string[]): string | null {
     }
   }
   return null;
+}
+
+// دالة لحساب الراتب الإجمالي حسب القواعد الجديدة
+function calculateTotalSalary(employee: Employee): { totalOvertime: number; totalSalary: number } {
+  // الإضافي بعد الدوام يحسب بنصف يوم
+  const overtimeValue = employee.overtimeAfterWork * 0.5;
+  
+  // الجمع والعطل والأعياد تحسب يوم بيوم
+  const fridaysHolidaysValue = employee.fridaysAndHolidays * 1;
+  const holidaysValue = employee.holidays * 1;
+  
+  // مجموع الإضافي
+  const totalOvertime = overtimeValue + fridaysHolidaysValue + holidaysValue;
+  
+  // حساب الراتب اليومي
+  const dailySalary = employee.baseSalary / employee.daysInMonthReference;
+  
+  // الراتب الإجمالي = الراتب الأساسي + (الإضافي × الراتب اليومي)
+  const totalSalary = employee.baseSalary + (totalOvertime * dailySalary);
+  
+  return {
+    totalOvertime: Math.round(totalOvertime * 100) / 100, // تقريب لرقمين عشريين
+    totalSalary: Math.round(totalSalary * 100) / 100
+  };
 }
 
 // دالة لإنشاء المراقبين
@@ -290,8 +358,18 @@ async function addEmployeesToFirestore(employees: Employee[]): Promise<void> {
       const existingDocs = await getDocs(existingQuery);
       
       if (existingDocs.empty) {
-        await addDoc(collection(db, 'employees'), employee);
-        console.log(`تم إضافة الموظف: ${employee.name} (${employee.jobNumber}) - ${employee.regionId}`);
+        // حساب الراتب الإجمالي
+        const salaryCalculation = calculateTotalSalary(employee);
+        
+        // إضافة الحسابات إلى بيانات الموظف
+        const employeeWithSalary = {
+          ...employee,
+          totalOvertime: salaryCalculation.totalOvertime,
+          totalSalary: salaryCalculation.totalSalary
+        };
+        
+        await addDoc(collection(db, 'employees'), employeeWithSalary);
+        console.log(`تم إضافة الموظف: ${employee.name} (${employee.jobNumber}) - ${employee.regionId} - الراتب: ${salaryCalculation.totalSalary} دينار`);
       } else {
         console.log(`الموظف موجود مسبقاً: ${employee.name} (${employee.jobNumber})`);
       }
@@ -385,6 +463,21 @@ async function importRealData(filePath: string): Promise<void> {
       const regionName = regions.find(r => r.id === regionId)?.name || regionId;
       console.log(`- ${regionName}: ${count} موظف`);
     });
+    
+    // إحصائيات العمل الإضافي
+    const totalOvertimeAfter = employees.reduce((sum, emp) => sum + emp.overtimeAfterWork, 0);
+    const totalFridaysHolidays = employees.reduce((sum, emp) => sum + emp.fridaysAndHolidays, 0);
+    const totalHolidays = employees.reduce((sum, emp) => sum + emp.holidays, 0);
+    
+    console.log('\n📊 إحصائيات العمل الإضافي:');
+    console.log(`- إجمالي أيام الإضافي بعد الدوام: ${totalOvertimeAfter} يوم`);
+    console.log(`- إجمالي أيام الجمع والعطل: ${totalFridaysHolidays} يوم`);
+    console.log(`- إجمالي أيام الأعياد: ${totalHolidays} يوم`);
+    
+    // حساب متوسط الراتب
+    const totalBaseSalary = employees.reduce((sum, emp) => sum + emp.baseSalary, 0);
+    const averageSalary = totalBaseSalary / employees.length;
+    console.log(`- متوسط الراتب الأساسي: ${Math.round(averageSalary)} دينار`);
     
     console.log('\n🔑 بيانات تسجيل الدخول:');
     console.log('المدير: admin@madaba.gov.jo');
