@@ -10,7 +10,7 @@ import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { Toast } from '../components/ui/Toast';
 import { calculateSalaryWithNewFormulas } from '../utils/calcSalary';
-import { formatDate } from '../utils/formatDate';
+// import { formatDate } from '../utils/formatDate';
 
 interface MonthlyEntry {
   id: string;
@@ -36,12 +36,13 @@ interface MonthlyEntry {
 
 const SupervisorDashboard: React.FC = () => {
   const { supervisor, permissions, assignedRegions, canAccess, isLoading, error } = useSupervisor();
-  const { employees, loading: employeesLoading } = useEmployees();
-  const { getCollection } = useFirestoreCRUD();
+  const { getCollection } = useFirestoreCRUD('monthly-entries');
   
+  const [employees, setEmployees] = useState<any[]>([]);
   const [monthlyEntries, setMonthlyEntries] = useState<MonthlyEntry[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [loading, setLoading] = useState(false);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [entryData, setEntryData] = useState({
@@ -52,10 +53,57 @@ const SupervisorDashboard: React.FC = () => {
   });
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // فلترة الموظفين حسب المناطق المسؤول عنها
-  const filteredEmployees = employees.filter(employee => 
-    assignedRegions.includes(employee.regionId)
-  );
+  // جلب الموظفين للمناطق المسؤول عنها
+  const fetchEmployees = async () => {
+    if (!assignedRegions.length) {
+      console.log('لا توجد مناطق مسؤول عنها');
+      return;
+    }
+    
+    setEmployeesLoading(true);
+    try {
+      const { getFirestore, collection, query, where, getDocs, or } = await import('firebase/firestore');
+      const db = getFirestore();
+      
+      let employeesQuery;
+      
+      if (assignedRegions.length === 1) {
+        // إذا كان مسؤول عن منطقة واحدة فقط
+        employeesQuery = query(
+          collection(db, 'employees'),
+          where('regionId', '==', assignedRegions[0])
+        );
+      } else {
+        // إذا كان مسؤول عن أكثر من منطقة
+        const regionQueries = assignedRegions.map(regionId => 
+          where('regionId', '==', regionId)
+        );
+        
+        employeesQuery = query(
+          collection(db, 'employees'),
+          or(...regionQueries)
+        );
+      }
+      
+      const snapshot = await getDocs(employeesQuery);
+      const employeesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      setEmployees(employeesData);
+      console.log(`تم جلب ${employeesData.length} موظف للمناطق: ${assignedRegions.join(', ')}`);
+      console.log('الموظفين:', employeesData.map(emp => `${emp.name} (${emp.regionId})`));
+    } catch (error) {
+      console.error('خطأ في جلب الموظفين:', error);
+      setToast({ message: 'خطأ في جلب الموظفين', type: 'error' });
+    } finally {
+      setEmployeesLoading(false);
+    }
+  };
+
+  // الموظفين محملين بالفعل حسب المناطق المسؤول عنها
+  const filteredEmployees = employees;
 
   // جلب الإدخالات الشهرية للمناطق المسؤول عنها
   const fetchMonthlyEntries = async () => {
@@ -63,7 +111,7 @@ const SupervisorDashboard: React.FC = () => {
     
     setLoading(true);
     try {
-      const entries = await getCollection('monthly-entries');
+      const entries = await getCollection() as MonthlyEntry[];
       const filteredEntries = entries.filter((entry: MonthlyEntry) => 
         assignedRegions.includes(entry.regionId) && 
         entry.monthKey === selectedMonth
@@ -76,6 +124,10 @@ const SupervisorDashboard: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [assignedRegions]);
 
   useEffect(() => {
     fetchMonthlyEntries();
@@ -149,12 +201,14 @@ const SupervisorDashboard: React.FC = () => {
     setShowEntryModal(true);
   };
 
-  if (isLoading) {
+  if (isLoading || employeesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">جاري تحميل بيانات المراقب...</p>
+          <p className="mt-4 text-gray-600">
+            {isLoading ? 'جاري تحميل بيانات المراقب...' : 'جاري تحميل الموظفين...'}
+          </p>
         </div>
       </div>
     );
@@ -289,6 +343,19 @@ const SupervisorDashboard: React.FC = () => {
             </div>
           </Card>
         </div>
+
+        {/* معلومات التشخيص */}
+        <Card className="mb-4 bg-blue-50">
+          <div className="px-6 py-4">
+            <h3 className="text-lg font-medium text-blue-900">معلومات التشخيص</h3>
+            <div className="mt-2 text-sm text-blue-700">
+              <p>المناطق المسؤول عنها: {assignedRegions.join(', ') || 'لا توجد'}</p>
+              <p>عدد الموظفين المحملين: {employees.length}</p>
+              <p>عدد الموظفين المفلترين: {filteredEmployees.length}</p>
+              <p>حالة التحميل: {employeesLoading ? 'جاري التحميل...' : 'مكتمل'}</p>
+            </div>
+          </div>
+        </Card>
 
         {/* قائمة الموظفين */}
         {canAccess('canViewEmployees') && (

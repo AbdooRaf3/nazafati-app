@@ -9,7 +9,8 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import UserTypeRouter from './components/UserTypeRouter';
 const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
-const SupervisorDashboard = React.lazy(() => import('./pages/SupervisorDashboard').then(m => ({ default: m.default })));
+const SupervisorDashboard = React.lazy(() => import('./pages/SupervisorDashboardSimple').then(m => ({ default: m.default })));
+const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const Employees = React.lazy(() => import('./pages/Employees').then(m => ({ default: m.Employees })));
 const MonthlyEntries = React.lazy(() => import('./pages/MonthlyEntries').then(m => ({ default: m.MonthlyEntries })));
 const Payroll = React.lazy(() => import('./pages/Payroll').then(m => ({ default: m.Payroll })));
@@ -119,6 +120,7 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/supervisor" element={<ProtectedRoute><SupervisorDashboard /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
               <Route path="/" element={<UserTypeRouter><Navigate to="/dashboard" replace /></UserTypeRouter>} />
               <Route path="/dashboard" element={<UserTypeRouter><Dashboard /></UserTypeRouter>} />
               <Route path="/employees" element={<UserTypeRouter><Employees /></UserTypeRouter>} />

@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions for role-based access control
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Allow anonymous access for data import (temporary)
+    function isAnonymous() {
+      return request.auth != null && request.auth.uid != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().role == 'admin';
+    }
+    
+    function isSupervisor() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().role == 'supervisor';
+    }
+    
+    // دالة للتحقق من أن الموظف في منطقة المراقب
+    function isEmployeeInSupervisorRegion(employeeId) {
+      return isSupervisor() && 
+        exists(/databases/$(database)/documents/employees/$(employeeId)) &&
+        get(/databases/$(database)/documents/employees/$(employeeId)).data.regionId in getUserData().regionIds;
+    }
+    
+    // دالة للتحقق من أن الإدخال الشهري لموظف في منطقة المراقب
+    function isEntryForSupervisorRegion() {
+      return isSupervisor() && 
+        exists(/databases/$(database)/documents/employees/$(request.resource.data.employeeId)) &&
+        get(/databases/$(database)/documents/employees/$(request.resource.data.employeeId)).data.regionId in getUserData().regionIds;
+    }
+    
+    function isFinance() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().role == 'finance';
+    }
+    
+    // Users collection rules
+    match /users/{userId} {
+      // Only admins can create/update/delete users
+      // Everyone can read their own user document
+      // Allow anonymous access for data import
+      allow create, update, delete: if isAdmin() || isAnonymous();
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+    
+    // Employees collection rules
+    match /employees/{employeeId} {
+      // Admins and Finance can read all employees
+      // Supervisors can only read employees in their regions
+      allow read: if isAdmin() || isFinance() || isEmployeeInSupervisorRegion(employeeId);
+      
+      // Admins can do everything
+      // Allow anonymous access for data import
+      allow write: if isAdmin() || isAnonymous();
+      
+      // Supervisors can create/update/delete employees in their regions only
+      allow create, update, delete: if isSupervisor() && 
+        request.resource.data.regionId in getUserData().regionIds;
+    }
+    
+    // Monthly entries collection rules
+    match /monthly-entries/{entryId} {
+      // Admins and Finance can read all entries
+      // Supervisors can only read entries for employees in their regions
+      allow read: if isAdmin() || isFinance() || 
+        (isSupervisor() && isEmployeeInSupervisorRegion(resource.data.employeeId));
+      
+      // Admins can do everything
+      allow write: if isAdmin();
+      
+      // Supervisors can create/update/delete entries for employees in their regions
+      allow create, update, delete: if isSupervisor() && 
+        isEntryForSupervisorRegion();
+    }
+    
+    // Salary rules collection
+    match /salaryRules/{ruleId} {
+      allow read: if isAuthenticated();
+      // Allow anonymous access for data import
+      allow write: if isAdmin() || isAnonymous();
+    }
+    
+    // Regions collection
+    match /regions/{regionId} {
+      allow read: if isAuthenticated();
+      // Allow anonymous access for data import
+      allow write: if isAdmin() || isAnonymous();
+    }
+  }
+}

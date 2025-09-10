@@ -55,7 +55,12 @@ const UserTypeRouter: React.FC<UserTypeRouterProps> = ({ children }) => {
 
   // توجيه المديرين إلى لوحة الإدارة
   if (userType === 'admin') {
-    return <>{children}</>;
+    // إذا كان المستخدم في مسار /admin، اعرض المحتوى
+    if (window.location.pathname === '/admin') {
+      return <>{children}</>;
+    }
+    // وإلا وجهه إلى لوحة الإدارة
+    return <Navigate to="/admin" replace />;
   }
 
   return (

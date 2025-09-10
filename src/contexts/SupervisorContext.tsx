@@ -1,7 +1,7 @@
 // سياق المراقبين مع الصلاحيات المحددة
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 interface SupervisorPermissions {
   canViewEmployees: boolean;
