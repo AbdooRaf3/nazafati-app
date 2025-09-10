@@ -3,10 +3,13 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { initializeFirebase } from './services/firebase-init';
 import { FirebaseProvider } from './contexts/FirebaseContext';
+import { SupervisorProvider } from './contexts/SupervisorContext';
 import { useAuth } from './hooks/useAuth';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import UserTypeRouter from './components/UserTypeRouter';
 const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const SupervisorDashboard = React.lazy(() => import('./pages/SupervisorDashboard').then(m => ({ default: m.default })));
 const Employees = React.lazy(() => import('./pages/Employees').then(m => ({ default: m.Employees })));
 const MonthlyEntries = React.lazy(() => import('./pages/MonthlyEntries').then(m => ({ default: m.MonthlyEntries })));
 const Payroll = React.lazy(() => import('./pages/Payroll').then(m => ({ default: m.Payroll })));
@@ -107,23 +110,26 @@ function App() {
   return (
     <ErrorBoundary>
       <FirebaseProvider value={firebase}>
-        <Suspense fallback={(
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          </div>
-        )}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
-            <Route path="/monthly-entries" element={<ProtectedRoute><MonthlyEntries /></ProtectedRoute>} />
-            <Route path="/payroll" element={<ProtectedRoute><Payroll /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </Suspense>
-        <ToastContainer toasts={toasts} onClose={removeToast} />
+        <SupervisorProvider>
+          <Suspense fallback={(
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            </div>
+          )}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/supervisor" element={<ProtectedRoute><SupervisorDashboard /></ProtectedRoute>} />
+              <Route path="/" element={<UserTypeRouter><Navigate to="/dashboard" replace /></UserTypeRouter>} />
+              <Route path="/dashboard" element={<UserTypeRouter><Dashboard /></UserTypeRouter>} />
+              <Route path="/employees" element={<UserTypeRouter><Employees /></UserTypeRouter>} />
+              <Route path="/monthly-entries" element={<UserTypeRouter><MonthlyEntries /></UserTypeRouter>} />
+              <Route path="/payroll" element={<UserTypeRouter><Payroll /></UserTypeRouter>} />
+              <Route path="/settings" element={<UserTypeRouter><Settings /></UserTypeRouter>} />
+              <Route path="*" element={<UserTypeRouter><Navigate to="/dashboard" replace /></UserTypeRouter>} />
+            </Routes>
+          </Suspense>
+          <ToastContainer toasts={toasts} onClose={removeToast} />
+        </SupervisorProvider>
       </FirebaseProvider>
     </ErrorBoundary>
   );
