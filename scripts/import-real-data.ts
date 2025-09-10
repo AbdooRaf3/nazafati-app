@@ -232,27 +232,26 @@ function findColumnValue(row: ExcelRow, possibleKeys: string[]): string | null {
   return null;
 }
 
-// دالة لحساب الراتب الإجمالي حسب القواعد الجديدة
-function calculateTotalSalary(employee: Employee): { totalOvertime: number; totalSalary: number } {
-  // الإضافي بعد الدوام يحسب بنصف يوم
-  const overtimeValue = employee.overtimeAfterWork * 0.5;
+// دالة لحساب الراتب الإجمالي حسب المعادلات الجديدة
+function calculateTotalSalary(employee: Employee): { totalOvertime: number; totalSalary: number; netSalary: number } {
+  // totalOvertime = (D2*I2*0.5) + (E2*I2) + (F2*I2)
+  // حيث D2 = holidays, E2 = fridaysAndHolidays, F2 = overtimeAfterReference, I2 = baseSalary
+  const totalOvertime = (employee.holidays * employee.baseSalary * 0.5) + 
+                       (employee.fridaysAndHolidays * employee.baseSalary) + 
+                       (employee.overtimeAfterReference * employee.baseSalary);
   
-  // الجمع والعطل والأعياد تحسب يوم بيوم
-  const fridaysHolidaysValue = employee.fridaysAndHolidays * 1;
-  const holidaysValue = employee.holidays * 1;
+  // totalSalary = C2*I2
+  // حيث C2 = daysInMonth, I2 = baseSalary
+  const totalSalary = employee.daysInMonth * employee.baseSalary;
   
-  // مجموع الإضافي
-  const totalOvertime = overtimeValue + fridaysHolidaysValue + holidaysValue;
-  
-  // حساب الراتب اليومي
-  const dailySalary = employee.baseSalary / employee.daysInMonthReference;
-  
-  // الراتب الإجمالي = الراتب الأساسي + (الإضافي × الراتب اليومي)
-  const totalSalary = employee.baseSalary + (totalOvertime * dailySalary);
+  // netSalary = L2 + K2
+  // حيث L2 = totalSalary, K2 = totalOvertime
+  const netSalary = totalSalary + totalOvertime;
   
   return {
     totalOvertime: Math.round(totalOvertime * 100) / 100, // تقريب لرقمين عشريين
-    totalSalary: Math.round(totalSalary * 100) / 100
+    totalSalary: Math.round(totalSalary * 100) / 100,
+    netSalary: Math.round(netSalary * 100) / 100
   };
 }
 

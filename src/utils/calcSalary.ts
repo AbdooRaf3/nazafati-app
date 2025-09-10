@@ -4,6 +4,33 @@ export const calculateDailyWage = (baseSalary: number, daysInMonth: number): num
   return baseSalary / daysInMonth;
 };
 
+// معادلات احتساب الراتب الجديدة
+export const calculateSalaryWithNewFormulas = (
+  baseSalary: number,
+  daysInMonth: number,
+  holidays: number,
+  fridaysAndHolidays: number,
+  overtimeAfterReference: number
+): { totalOvertime: number; totalSalary: number; netSalary: number } => {
+  // totalOvertime = (D2*I2*0.5) + (E2*I2) + (F2*I2)
+  // حيث D2 = holidays, E2 = fridaysAndHolidays, F2 = overtimeAfterReference, I2 = baseSalary
+  const totalOvertime = (holidays * baseSalary * 0.5) + (fridaysAndHolidays * baseSalary) + (overtimeAfterReference * baseSalary);
+  
+  // totalSalary = C2*I2
+  // حيث C2 = daysInMonth, I2 = baseSalary
+  const totalSalary = daysInMonth * baseSalary;
+  
+  // netSalary = L2 + K2
+  // حيث L2 = totalSalary, K2 = totalOvertime
+  const netSalary = totalSalary + totalOvertime;
+  
+  return {
+    totalOvertime: Math.round(totalOvertime * 1000) / 1000, // تقريب إلى ثلاثة أرقام عشريين
+    totalSalary: Math.round(totalSalary * 1000) / 1000,
+    netSalary: Math.round(netSalary * 1000) / 1000
+  };
+};
+
 export const calculateTotalSalary = (
   baseSalary: number,
   daysWorked: number,

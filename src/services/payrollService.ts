@@ -1,9 +1,11 @@
 import { FirestoreService } from './firestoreService';
 import { Firestore } from 'firebase/firestore';
-import { calculateTotalSalary } from '../utils/calcSalary';
+import { calculateTotalSalary, calculateSalaryWithNewFormulas } from '../utils/calcSalary';
 import { errorHandler } from '../utils/errorHandler';
+import { PayrollRow } from '../types';
 
-export interface PayrollRow {
+// الاحتفاظ بالواجهة القديمة للتوافق مع الكود الموجود
+export interface LegacyPayrollRow {
   jobNumber: string;
   name: string;
   daysWorked: number;
@@ -27,6 +29,92 @@ export interface PayrollSummary {
 }
 
 export class PayrollService {
+  // دالة جديدة لتوليد بيانات الرواتب باستخدام المعادلات الجديدة
+  static async generatePayrollDataWithNewFormulas(db: Firestore, monthKey: string, regionId?: string): Promise<{
+    monthKey: string;
+    totalEmployees: number;
+    totalBaseSalary: number;
+    totalOvertime: number;
+    totalSalary: number;
+    netSalary: number;
+    rows: PayrollRow[];
+  }> {
+    try {
+      // جلب الإدخالات الشهرية
+      const entries = await FirestoreService.getMonthlyEntries(db, monthKey, regionId);
+      
+      if (entries.length === 0) {
+        throw new Error('لا توجد بيانات للشهر المحدد');
+      }
+
+      // جلب بيانات الموظفين
+      const employeeIds = [...new Set(entries.map(entry => entry.employeeId))];
+      const employees = await Promise.all(
+        employeeIds.map(id => FirestoreService.getUser(db, id))
+      );
+      
+      // إنشاء صفوف الرواتب
+      const rows: PayrollRow[] = [];
+      let totalBaseSalary = 0;
+      let totalOvertime = 0;
+      let totalSalary = 0;
+      let netSalary = 0;
+
+      for (const entry of entries) {
+        const employee = employees.find(emp => emp?.uid === entry.employeeId);
+        if (!employee) continue;
+
+        // استخدام المعادلات الجديدة
+        const salaryCalculations = calculateSalaryWithNewFormulas(
+          entry.baseSalary || 0,
+          entry.daysInMonth || 31,
+          entry.holidays || 0,
+          entry.fridaysAndHolidays || 0,
+          entry.overtimeAfterReference || 0
+        );
+
+        const row: PayrollRow = {
+          jobNumber: employee.uid,
+          name: employee.name,
+          baseSalary: entry.baseSalary || 0,
+          daysInMonth: entry.daysInMonth || 31,
+          holidays: entry.holidays || 0,
+          fridaysAndHolidays: entry.fridaysAndHolidays || 0,
+          overtimeAfterReference: entry.overtimeAfterReference || 0,
+          totalOvertime: salaryCalculations.totalOvertime,
+          totalSalary: salaryCalculations.totalSalary,
+          netSalary: salaryCalculations.netSalary,
+          notes: entry.status === 'approved' ? 'موافق عليه' : 
+                 entry.status === 'submitted' ? 'مُرسل للمراجعة' : 'مسودة'
+        };
+
+        rows.push(row);
+
+        // تحديث الإجماليات
+        totalBaseSalary += row.baseSalary;
+        totalOvertime += row.totalOvertime;
+        totalSalary += row.totalSalary;
+        netSalary += row.netSalary;
+      }
+
+      return {
+        monthKey,
+        totalEmployees: rows.length,
+        totalBaseSalary,
+        totalOvertime,
+        totalSalary,
+        netSalary,
+        rows
+      };
+    } catch (error) {
+      errorHandler.handleError(error, 'generatePayrollDataWithNewFormulas', {
+        action: 'generatePayrollDataWithNewFormulas',
+        additionalData: { monthKey, regionId }
+      });
+      throw new Error('فشل في توليد بيانات الرواتب بالمعادلات الجديدة');
+    }
+  }
+
   static async generatePayrollData(db: Firestore, monthKey: string, regionId?: string): Promise<PayrollSummary> {
     try {
       // جلب الإدخالات الشهرية

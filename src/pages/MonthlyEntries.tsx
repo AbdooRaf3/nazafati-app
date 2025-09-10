@@ -6,7 +6,7 @@ import { useEmployees } from '../hooks/useEmployees';
 import { useRegionAccess } from '../hooks/useRegionAccess';
 import { Employee, MonthlyEntry, SalaryRules } from '../types';
 import { Button } from '../components/ui/Button';
-import { calculateTotalSalary } from '../utils/calcSalary';
+import { calculateTotalSalary, calculateSalaryWithNewFormulas } from '../utils/calcSalary';
 import { formatCurrency } from '../constants/currency';
 // import { formatArabicDate as formatDate } from '../utils/formatDate';
 
@@ -86,6 +86,11 @@ export const MonthlyEntries: React.FC = () => {
             daysWorked: 0, 
             overtimeDays: 0,
             weekendDays: 0,
+            // الحقول الجديدة
+            holidays: 0,
+            fridaysAndHolidays: 0,
+            overtimeAfterReference: 0,
+            daysInMonth: 31,
             status: 'draft',
             submittedBy: user!.uid,
             regionId: employees.find(e => e.id === employeeId)?.regionId || '',
@@ -101,25 +106,38 @@ export const MonthlyEntries: React.FC = () => {
     const entry = monthlyEntries[employeeId];
     const employee = employees.find(e => e.id === employeeId);
 
-    if (!entry || !employee || !salaryRules) {
+    if (!entry || !employee) {
         alert('بيانات غير كاملة لحفظ الإدخال');
         return;
     }
 
     try {
-        const totals = calculateTotalSalary(
+        // استخدام المعادلات الجديدة
+        const salaryCalculations = calculateSalaryWithNewFormulas(
             employee.baseSalary,
-            Number(entry.daysWorked || 0),
-            Number(entry.overtimeDays || 0),
-            Number(entry.weekendDays || 0),
-            salaryRules
+            Number(entry.daysInMonth || 31),
+            Number(entry.holidays || 0),
+            Number(entry.fridaysAndHolidays || 0),
+            Number(entry.overtimeAfterReference || 0)
         );
+
+        const totals = {
+            dailyWage: employee.baseSalary / (entry.daysInMonth || 31),
+            total: salaryCalculations.netSalary,
+            totalOvertime: salaryCalculations.totalOvertime,
+            totalSalary: salaryCalculations.totalSalary,
+            netSalary: salaryCalculations.netSalary
+        };
 
         const dataToSave = {
             ...entry,
             daysWorked: Number(entry.daysWorked || 0),
             overtimeDays: Number(entry.overtimeDays || 0),
             weekendDays: Number(entry.weekendDays || 0),
+            holidays: Number(entry.holidays || 0),
+            fridaysAndHolidays: Number(entry.fridaysAndHolidays || 0),
+            overtimeAfterReference: Number(entry.overtimeAfterReference || 0),
+            daysInMonth: Number(entry.daysInMonth || 31),
             totals
         };
 
@@ -176,10 +194,13 @@ export const MonthlyEntries: React.FC = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">اسم الموظف</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">أيام العمل</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">أيام إضافية</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">أيام نهاية الأسبوع</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">أيام الشهر</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">العطل</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الجمع والعطل</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإضافي بعد المرجع</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">إجمالي الإضافي</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">إجمالي الراتب</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">صافي الراتب</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الحالة</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">إجراءات</th>
               </tr>
@@ -193,8 +214,20 @@ export const MonthlyEntries: React.FC = () => {
                     <td className="px-4 py-4 whitespace-nowrap">
                       <input 
                         type="number"
-                        value={entry?.daysWorked || ''}
-                        onChange={(e) => handleInputChange(employee.id!, 'daysWorked', e.target.value)}
+                        value={entry?.daysInMonth || ''}
+                        onChange={(e) => handleInputChange(employee.id!, 'daysInMonth', e.target.value)}
+                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        disabled={entry?.status === 'submitted' || entry?.status === 'approved'}
+                        min="28"
+                        max="31"
+                        placeholder="31"
+                      />
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <input 
+                        type="number"
+                        value={entry?.holidays || ''}
+                        onChange={(e) => handleInputChange(employee.id!, 'holidays', e.target.value)}
                         className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         disabled={entry?.status === 'submitted' || entry?.status === 'approved'}
                         min="0"
@@ -204,8 +237,8 @@ export const MonthlyEntries: React.FC = () => {
                     <td className="px-4 py-4 whitespace-nowrap">
                       <input 
                         type="number"
-                        value={entry?.overtimeDays || ''}
-                        onChange={(e) => handleInputChange(employee.id!, 'overtimeDays', e.target.value)}
+                        value={entry?.fridaysAndHolidays || ''}
+                        onChange={(e) => handleInputChange(employee.id!, 'fridaysAndHolidays', e.target.value)}
                         className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         disabled={entry?.status === 'submitted' || entry?.status === 'approved'}
                         min="0"
@@ -215,8 +248,8 @@ export const MonthlyEntries: React.FC = () => {
                     <td className="px-4 py-4 whitespace-nowrap">
                       <input 
                         type="number"
-                        value={entry?.weekendDays || ''}
-                        onChange={(e) => handleInputChange(employee.id!, 'weekendDays', e.target.value)}
+                        value={entry?.overtimeAfterReference || ''}
+                        onChange={(e) => handleInputChange(employee.id!, 'overtimeAfterReference', e.target.value)}
                         className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         disabled={entry?.status === 'submitted' || entry?.status === 'approved'}
                         min="0"
@@ -224,7 +257,13 @@ export const MonthlyEntries: React.FC = () => {
                       />
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      {entry?.totals?.total ? formatCurrency(entry.totals.total) : '-'}
+                      {entry?.totals?.totalOvertime ? formatCurrency(entry.totals.totalOvertime) : '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                      {entry?.totals?.totalSalary ? formatCurrency(entry.totals.totalSalary) : '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                      {entry?.totals?.netSalary ? formatCurrency(entry.totals.netSalary) : '-'}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
