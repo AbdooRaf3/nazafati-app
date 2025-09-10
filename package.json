@@ -10,7 +10,11 @@
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 50",
     "import-real-data": "tsx scripts/import-real-data.ts",
-    "import-excel": "tsx scripts/import-excel.ts"
+    "import-excel": "tsx scripts/import-excel.ts",
+    "db:update": "node scripts/run-database-update.mjs",
+    "db:update-schema": "node scripts/update-database-schema.mjs",
+    "db:create-sample": "node scripts/create-sample-data-updated.mjs",
+    "db:deploy": "node scripts/deploy-database-updates.mjs"
   },
   "dependencies": {
     "classnames": "^2.3.2",
