@@ -1,5 +1,5 @@
 // سكريبت رفع البيانات من Excel محدث للمعادلات الجديدة
-import XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { 
@@ -47,13 +47,33 @@ function calculateSalaryWithNewFormulas(baseSalary, daysInMonth, holidays, frida
 }
 
 // دالة لقراءة ملف Excel
-function readExcelFile(filePath) {
+async function readExcelFile(filePath) {
   try {
     console.log('📖 قراءة ملف Excel...');
-    const workbook = XLSX.readFile(filePath);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
+      throw new Error('لم يتم العثور على أي ورقة في الملف');
+    }
+    
+    // تحويل البيانات إلى مصفوفة من الكائنات
+    const data = [];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // تخطي صف العناوين
+      
+      const rowData = {};
+      row.eachCell((cell, colNumber) => {
+        const header = worksheet.getRow(1).getCell(colNumber).value;
+        if (header) {
+          rowData[header] = cell.value;
+        }
+      });
+      if (Object.keys(rowData).length > 0) {
+        data.push(rowData);
+      }
+    });
     
     console.log(`✅ تم قراءة ${data.length} صف من الملف`);
     return data;
@@ -414,7 +434,7 @@ async function importExcelData(filePath, monthKey) {
     console.log('✅ تم تسجيل الدخول إلى Firebase');
     
     // قراءة ملف Excel
-    const excelData = readExcelFile(filePath);
+    const excelData = await readExcelFile(filePath);
     
     // تحويل البيانات
     const employees = convertToEmployees(excelData);
