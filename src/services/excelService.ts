@@ -1,19 +1,16 @@
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import { PayrollSummary } from './payrollService';
 import { formatArabicMonth } from '../utils/formatDate';
 import { formatCurrency, formatCurrencyValue } from '../constants/currency';
 
 export class ExcelService {
-  static generateAndDownloadExcel(monthKey: string, payrollData: PayrollSummary): void {
+  static async generateAndDownloadExcel(monthKey: string, payrollData: PayrollSummary): Promise<void> {
     try {
       // إنشاء workbook جديد
-      const workbook = XLSX.utils.book_new();
-      
-      // إنشاء بيانات الرواتب
-      const payrollRows = this.createPayrollRows(payrollData);
+      const workbook = new ExcelJS.Workbook();
       
       // إنشاء ورقة الرواتب
-      const payrollSheet = XLSX.utils.json_to_sheet(payrollRows);
+      const payrollSheet = workbook.addWorksheet('كشف الرواتب');
       
       // تعيين أسماء الأعمدة بالعربية
       const headers = [
@@ -28,20 +25,52 @@ export class ExcelService {
         'ملاحظات'
       ];
       
-      // تطبيق العناوين
-      XLSX.utils.sheet_add_aoa(payrollSheet, [headers], { origin: 'A1' });
+      // إضافة العناوين
+      payrollSheet.addRow(headers);
+      
+      // تنسيق العناوين
+      const headerRow = payrollSheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' }
+      };
+      
+      // إضافة بيانات الرواتب
+      const payrollRows = this.createPayrollRows(payrollData);
+      payrollRows.forEach(row => {
+        payrollSheet.addRow([
+          row['رقم الوظيفة'],
+          row['اسم الموظف'],
+          row['أيام العمل'],
+          row['أيام العمل الإضافي'],
+          row['أيام العمل في العطل'],
+          row['الراتب الأساسي'],
+          row['الأجر اليومي'],
+          row['إجمالي الراتب'],
+          row['ملاحظات']
+        ]);
+      });
       
       // إنشاء ورقة الملخص
+      const summarySheet = workbook.addWorksheet('ملخص الرواتب');
+      
+      // إضافة عناوين الملخص
+      summarySheet.addRow(['البند', 'القيمة']);
+      const summaryHeaderRow = summarySheet.getRow(1);
+      summaryHeaderRow.font = { bold: true };
+      summaryHeaderRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' }
+      };
+      
+      // إضافة بيانات الملخص
       const summaryRows = this.createSummaryRows(payrollData);
-      const summarySheet = XLSX.utils.json_to_sheet(summaryRows);
-      
-      // تعيين أسماء أعمدة الملخص
-      const summaryHeaders = ['البند', 'القيمة'];
-      XLSX.utils.sheet_add_aoa(summarySheet, [summaryHeaders], { origin: 'A1' });
-      
-      // إضافة الأوراق إلى الكتاب
-      XLSX.utils.book_append_sheet(workbook, payrollSheet, 'كشف الرواتب');
-      XLSX.utils.book_append_sheet(workbook, summarySheet, 'ملخص الرواتب');
+      summaryRows.forEach(row => {
+        summarySheet.addRow([row['البند'], row['القيمة']]);
+      });
       
       // تنسيق الأعمدة
       this.formatColumns(payrollSheet, summarySheet);
@@ -50,7 +79,14 @@ export class ExcelService {
       const fileName = `كشف_رواتب_${monthKey}_${new Date().toISOString().split('T')[0]}.xlsx`;
       
       // تنزيل الملف
-      XLSX.writeFile(workbook, fileName);
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      window.URL.revokeObjectURL(url);
       
     } catch (error) {
       console.error('خطأ في توليد ملف Excel:', error);
@@ -89,64 +125,34 @@ export class ExcelService {
     ];
   }
 
-  private static formatColumns(payrollSheet: XLSX.WorkSheet, summarySheet: XLSX.WorkSheet): void {
+  private static formatColumns(payrollSheet: ExcelJS.Worksheet, summarySheet: ExcelJS.Worksheet): void {
     // تنسيق أعمدة الرواتب
-    const payrollColumns = [
-      { wch: 15 }, // رقم الوظيفة
-      { wch: 25 }, // اسم الموظف
-      { wch: 12 }, // أيام العمل
-      { wch: 18 }, // أيام العمل الإضافي
-      { wch: 20 }, // أيام العمل في العطل
-      { wch: 15 }, // الراتب الأساسي
-      { wch: 12 }, // الأجر اليومي
-      { wch: 15 }, // إجمالي الراتب
-      { wch: 20 }  // ملاحظات
+    payrollSheet.columns = [
+      { width: 15 }, // رقم الوظيفة
+      { width: 25 }, // اسم الموظف
+      { width: 12 }, // أيام العمل
+      { width: 18 }, // أيام العمل الإضافي
+      { width: 20 }, // أيام العمل في العطل
+      { width: 15 }, // الراتب الأساسي
+      { width: 12 }, // الأجر اليومي
+      { width: 15 }, // إجمالي الراتب
+      { width: 20 }  // ملاحظات
     ];
-    
-    payrollSheet['!cols'] = payrollColumns;
     
     // تنسيق أعمدة الملخص
-    const summaryColumns = [
-      { wch: 30 }, // البند
-      { wch: 20 }  // القيمة
+    summarySheet.columns = [
+      { width: 30 }, // البند
+      { width: 20 }  // القيمة
     ];
-    
-    summarySheet['!cols'] = summaryColumns;
   }
 
-  static generateTemplateExcel(): void {
+  static async generateTemplateExcel(): Promise<void> {
     try {
       // إنشاء workbook جديد
-      const workbook = XLSX.utils.book_new();
-      
-      // إنشاء بيانات نموذجية
-      const templateRows = [
-        {
-          'رقم الوظيفة': 'EMP001',
-          'اسم الموظف': 'أحمد محمد',
-          'أيام العمل': 22,
-          'أيام العمل الإضافي': 3,
-          'أيام العمل في العطل': 2,
-          'الراتب الأساسي': formatCurrencyValue(3000),
-          'الأجر اليومي': formatCurrencyValue(100),
-          'إجمالي الراتب': formatCurrencyValue(3300),
-          'ملاحظات': 'مثال'
-        },
-        {
-          'رقم الوظيفة': 'EMP002',
-          'اسم الموظف': 'فاطمة علي',
-          'أيام العمل': 20,
-          'أيام العمل الإضافي': 1,
-          'أيام العمل في العطل': 1,
-          'الراتب الأساسي': formatCurrencyValue(2800),
-          'الأجر اليومي': formatCurrencyValue(93.33),
-          'إجمالي الراتب': formatCurrencyValue(2986.67),
-          'ملاحظات': 'مثال'
-        }
-      ];
+      const workbook = new ExcelJS.Workbook();
       
       // إنشاء ورقة النموذج
-      const templateSheet = XLSX.utils.json_to_sheet(templateRows);
+      const templateSheet = workbook.addWorksheet('نموذج كشف الرواتب');
       
       // تعيين أسماء الأعمدة
       const headers = [
@@ -161,20 +167,43 @@ export class ExcelService {
         'ملاحظات'
       ];
       
-      XLSX.utils.sheet_add_aoa(templateSheet, [headers], { origin: 'A1' });
+      // إضافة العناوين
+      templateSheet.addRow(headers);
       
-      // إضافة الورقة إلى الكتاب
-      XLSX.utils.book_append_sheet(workbook, templateSheet, 'نموذج كشف الرواتب');
+      // تنسيق العناوين
+      const headerRow = templateSheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' }
+      };
+      
+      // إضافة بيانات نموذجية
+      const templateRows = [
+        ['EMP001', 'أحمد محمد', 22, 3, 2, formatCurrencyValue(3000), formatCurrencyValue(100), formatCurrencyValue(3300), 'مثال'],
+        ['EMP002', 'فاطمة علي', 20, 1, 1, formatCurrencyValue(2800), formatCurrencyValue(93.33), formatCurrencyValue(2986.67), 'مثال']
+      ];
+      
+      templateRows.forEach(row => {
+        templateSheet.addRow(row);
+      });
       
       // تنسيق الأعمدة
-      const columns = [
-        { wch: 15 }, { wch: 25 }, { wch: 12 }, { wch: 18 },
-        { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 20 }
+      templateSheet.columns = [
+        { width: 15 }, { width: 25 }, { width: 12 }, { width: 18 },
+        { width: 20 }, { width: 15 }, { width: 12 }, { width: 15 }, { width: 20 }
       ];
-      templateSheet['!cols'] = columns;
       
       // تنزيل النموذج
-      XLSX.writeFile(workbook, 'نموذج_كشف_الرواتب.xlsx');
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'نموذج_كشف_الرواتب.xlsx';
+      link.click();
+      window.URL.revokeObjectURL(url);
       
     } catch (error) {
       console.error('خطأ في توليد نموذج Excel:', error);
@@ -183,27 +212,26 @@ export class ExcelService {
   }
 
   static validateExcelFile(file: File): Promise<boolean> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         const reader = new FileReader();
         
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
           try {
             const data = new Uint8Array(e.target?.result as ArrayBuffer);
-            const workbook = XLSX.read(data, { type: 'array' });
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(data);
             
             // التحقق من وجود ورقة الرواتب
-            const payrollSheet = workbook.Sheets['كشف الرواتب'] || workbook.Sheets[workbook.SheetNames[0]];
+            const payrollSheet = workbook.getWorksheet('كشف الرواتب') || workbook.worksheets[0];
             
             if (!payrollSheet) {
               resolve(false);
               return;
             }
             
-            // التحقق من وجود البيانات
-            const jsonData = XLSX.utils.sheet_to_json(payrollSheet);
-            
-            if (jsonData.length === 0) {
+            // التحقق من وجود البيانات (أكثر من صف واحد - العناوين)
+            if (payrollSheet.rowCount <= 1) {
               resolve(false);
               return;
             }
